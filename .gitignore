@@ -1,6 +1,7 @@
 *.pydevproject
 .project
 .metadata
+.DS_Store
 data/
 logs/
 bin/**

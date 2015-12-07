@@ -19,6 +19,43 @@ class BaseEntity:
     def loadField(clazz,eid,field):
         queryResult=clazz.objects(eid=eid)
         return list(map(lambda x:getattr(x, field),queryResult))
+    
+    @classmethod
+    def updateField(clazz,eid,field,value):
+        queryResult=clazz.objects(eid=eid)
+        obj=None
+        if len(queryResult)==0:
+            obj=clazz.new()
+            obj.eid=eid
+        else:
+            obj=queryResult[0]
+        setattr(obj, field, value)
+        obj.save()
+        
+    
+    @classmethod
+    def insert(clazz,entity):
+        num=clazz.objects(eid=entity.eid).count()
+        if num==0:
+            entity.save()
+            return True
+        else:
+            return False
+    
+    @classmethod
+    def persist(clazz,entity):
+        queryResult=clazz.objects(eid=entity.eid)
+        if len(queryResult)==0:
+            entity.save()
+        else:
+            queryResult[0].delete()
+            entity.save()
+            
+    @classmethod
+    def delete(clazz,entity):
+        queryResult=clazz.objects(eid=entity.eid)
+        if len(queryResult)>0:
+            queryResult[0].delete()
 
 class Record(Document):
     userId=StringField(max_length=20)
@@ -34,11 +71,19 @@ class Record(Document):
         return queryResult[0] if len(queryResult)>0 else None
     
     @staticmethod
+    def insert(record):
+        num=Record.objects(userId=record.userId,articleId=record.articleId).count()
+        if num == 0:
+            record.save()
+        
+    
+    @staticmethod
     def isClicked(userId,articleId):
         return True if len(Record.objects(userId=userId,articleId=articleId))>0 else False
     
 class Article(Document,BaseEntity):
     eid=StringField(max_length=20,requied=True)
+    index=LongField()
     title=StringField(max_length=20,default=None)
     content=StringField(default=None)
     publistDate=DateTimeField(default=None)
@@ -54,14 +99,17 @@ class Article(Document,BaseEntity):
 #         return 
     
     
-class User(Document):
+class User(Document,BaseEntity):
     eid=StringField(max_length=20)
+    index=LongField()
     recommendation=ListField(StringField(max_length=20))
     friends=ListField(StringField(max_length=20))
     
     def getAllClickedFromDB(self):
         queryResults=Record.objects(userId=self.eid).only('articleId')
 
-
+class WordBag(Document,BaseEntity):
+    eid=StringField(max_length=20)
+    wordList=ListField(StringField())
 
 
