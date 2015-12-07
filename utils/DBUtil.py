@@ -1,6 +1,6 @@
 '''
 Created on 2015年12月5日
-
+@summary: 处理一些批量写入数据库的事宜
 @author: suemi
 '''
 import codecs

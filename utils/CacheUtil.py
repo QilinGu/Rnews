@@ -1,6 +1,6 @@
 '''
 Created on 2015年12月5日
-
+@summary: 对算法运行中的一些中间文件进行管理
 @author: suemi
 '''
 from utils.CorpusHandler import CorpusMode, TopicMethod

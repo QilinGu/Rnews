@@ -1,6 +1,6 @@
 '''
 Created on 2015年12月4日
-
+@summary: 定义在mongoDB数据库中的实体
 @author: suemi
 '''
 from mongoengine import *
