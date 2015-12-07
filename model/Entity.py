@@ -88,16 +88,6 @@ class Article(Document,BaseEntity):
     content=StringField(default=None)
     publistDate=DateTimeField(default=None)
     
-#     @staticmethod
-#     def load(articleId):
-#         queryResult=Article.objects(id=articleId)
-#         return queryResult[0] if len(queryResult)>0 else None
-#     
-#     @staticmethod
-#     def loadField(articleId,field):
-#         queryResult=Article.objects(id=articleId).only(field)
-#         return 
-    
     
 class User(Document,BaseEntity):
     eid=StringField(max_length=20)
@@ -107,9 +97,16 @@ class User(Document,BaseEntity):
     
     def getAllClickedFromDB(self):
         queryResults=Record.objects(userId=self.eid).only('articleId')
-
+        return list(map(lambda x:getattr(x,'articleId'),queryResults))
+    
 class WordBag(Document,BaseEntity):
     eid=StringField(max_length=20)
     wordList=ListField(StringField())
 
+class ArticleFeaure(Document,BaseEntity):
+    eid=StringField(max_length=20)
+    topicVector=ListField(DecimalField())
 
+class UserFeature(Document,BaseEntity):
+    eid=StringField(max_length=20)
+    interest=ListField(DecimalField())

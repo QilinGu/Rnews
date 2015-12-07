@@ -10,7 +10,7 @@ from datetime import datetime
 class DBUtil:
     
     @staticmethod
-    def rawDataToDB(filePath,start=0,end=1000000):
+    def dumpRawData(filePath,start=0,end=1000000):
         src=codecs.open(filePath,'r','utf8')
         line=src.readline()
         user_count=User.objects.count()
@@ -56,4 +56,7 @@ class DBUtil:
         hour=int(dateStr[11:-2].split(':')[0])
         minute=int(dateStr[11:-2].split(':')[1])
         return datetime(year,month,day,hour,minute)
-        
+     
+    @staticmethod
+    def dumpTopic(corpus):
+        pass   

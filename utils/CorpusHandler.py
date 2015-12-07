@@ -30,7 +30,7 @@ class CorpusMode(Enum):
     Low="low"
     
 class TopicMethod(Enum):
-    LDA=0
+    LDA="LDA"
 
 class CorpusHandler:
     
