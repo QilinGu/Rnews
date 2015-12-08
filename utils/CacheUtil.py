@@ -5,28 +5,33 @@ Created on 2015年12月5日
 '''
 from utils.CorpusHandler import CorpusMode, TopicMethod
 from gensim import corpora
+import pickle as pk
+import os
 class CacheUtil:
-    dataPath="/Volumes/MAC/Rnews/data/"
-    dictionaryPath=CacheUtil.dataPath+"rnews.dict"
-    corpusPath=CacheUtil.dataPath+"corpus.mm"
-    topicPath=CacheUtil.dataPath+"topic.mm"
+    path={}
+    path["data"]="/Volumes/MAC/Rnews/data/"
+    path["dictionary"]=CacheUtil.path["data"]+"rnews.dict"
+    path["corpus"]=CacheUtil.path["data"]+"corpus.mm"
+    path["topic"]=CacheUtil.path["data"]+"topic.mm"
+    path["articleFeature"]=CacheUtil.path["data"]+"articleFeature.pk"
+    path["userInterest"]=CacheUtil.path["data"]+"userInterest.pk"
         
     @staticmethod
     def loadDictionary():
-        return corpora.dictionary.Dictionary.load(CacheUtil.dictionaryPath)
+        return corpora.dictionary.Dictionary.load(CacheUtil.path["dictionary"])
     
     @staticmethod
     def loadCorpus(mode=CorpusMode.Mm):
         corpus=None
-        CacheUtil.corpusPath=CacheUtil.dataPath+"corpus."+mode
+        CacheUtil.path["corpus"]=CacheUtil.path["data"]+"corpus."+mode
         if mode==CorpusMode.Mm:
-            corpus=corpora.MmCorpus(CacheUtil.corpusPath)
+            corpus=corpora.MmCorpus(CacheUtil.path["corpus"])
         elif mode==CorpusMode.Blei:
-            corpus=corpora.BleiCorpus(CacheUtil.corpusPath)
+            corpus=corpora.BleiCorpus(CacheUtil.path["corpus"])
         elif mode==CorpusMode.Low:
-            corpus=corpora.LowCorpus(CacheUtil.corpusPath)
+            corpus=corpora.LowCorpus(CacheUtil.path["corpus"])
         elif mode==CorpusMode.SVMLight:
-            corpus=corpora.SvmLightCorpus(CacheUtil.corpusPath)
+            corpus=corpora.SvmLightCorpus(CacheUtil.path["corpus"])
         return corpus
     
     @staticmethod
@@ -35,23 +40,43 @@ class CacheUtil:
     
     @staticmethod
     def dumpCorpus(corpus,mode=CorpusMode.Mm):
-        CacheUtil.corpusPath=CacheUtil.dataPath+"corpus."+mode
+        CacheUtil.path["corpus"]=CacheUtil.path["data"]+"corpus."+mode
         if mode==CorpusMode.Mm:
-            corpora.MmCorpus.serialize(CacheUtil.corpusPath,corpus)
+            corpora.MmCorpus.serialize(CacheUtil.path["corpus"],corpus)
         elif mode==CorpusMode.Blei:
-           corpora.BleiCorpus.serialize(CacheUtil.corpusPath,corpus)
+           corpora.BleiCorpus.serialize(CacheUtil.path["corpus"],corpus)
         elif mode==CorpusMode.Low:
-           corpora.LowCorpus.serialize(CacheUtil.corpusPath,corpus)
+           corpora.LowCorpus.serialize(CacheUtil.path["corpus"],corpus)
         elif mode==CorpusMode.SVMLight:
-            corpora.SvmLightCorpus.serialize(CacheUtil.corpusPath,corpus)
+            corpora.SvmLightCorpus.serialize(CacheUtil.path["corpus"],corpus)
         
     
     @staticmethod
     def dumpTopic(corpus,method=TopicMethod.LDA):
-        CacheUtil.topicPath=CacheUtil.dataPath+method+".mm"
-        corpora.MmCorpus.serialize(CacheUtil.topicPath,corpus)
+        CacheUtil.path["topic"]=CacheUtil.path["data"]+method+".mm"
+        corpora.MmCorpus.serialize(CacheUtil.path["topic"],corpus)
         
     @staticmethod
     def loadTopic(method=TopicMethod.LDA):
-        CacheUtil.topicPath=CacheUtil.dataPath+method+".mm"
-        return corpora.MmCorpus(CacheUtil.topicPath)
+        CacheUtil.path["topic"]=CacheUtil.path["data"]+method+".mm"
+        return corpora.MmCorpus(CacheUtil.path["topic"])
+    
+    @staticmethod
+    def dumpArticleFeature(feature):
+        pk.dump(feature,open(CacheUtil.path["articleFeature"],'w'))
+        
+    @staticmethod
+    def loadArticleFeature():
+        if not os.path.exists(CacheUtil.path["articleFeature"]):
+            return None
+        pk.load(open(CacheUtil.path["articleFeature"],'r'))
+        
+    @staticmethod
+    def dumpUserFeature(feature):
+        pk.dump(feature,open(CacheUtil.path["userFeature"],'w'))
+        
+    @staticmethod
+    def loadUserInterest():
+        if not os.path.exists(CacheUtil.path["userInterest"]):
+            return None
+        pk.load(open(CacheUtil.path["userInterest"],'r'))

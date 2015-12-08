@@ -59,4 +59,11 @@ class DBUtil:
      
     @staticmethod
     def dumpTopic(corpus):
-        pass   
+        for i in range(len(corpus)):
+            doc=corpus[i]
+            vector=list(map(lambda x:x[1],doc)) 
+            feature=ArticleFeaure()
+            feature.eid= Article.objects[i].eid
+            feature.topicVector=vector
+            ArticleFeaure.persist(feature)
+            print("Topic of Article "+feature.eid+" saved successfully!")
