@@ -13,12 +13,27 @@ class FeatureProvider:
         pass
         
     def provide(self,eid):
+        '''
+        @summary: 为单个对象提供特征向量
+        '''
         pass
     
     def provideAll(self):
+        '''
+        @summary: 以矩阵的形式为所有对象提供特征向量
+        '''
+        pass
+    
+    def clear(self):
+        '''
+        @summary: 清空对象占有的缓存
+        '''
         pass
     
 class ArticleFeatureProvider(FeatureProvider):
+    '''
+    @summary: 提供由新闻主题生成的特征
+    '''
     
     def __init__(self,corpus=None):
         self.corpus=corpus
@@ -64,9 +79,9 @@ class ArticleFeatureProvider(FeatureProvider):
         return feature
     
     def provide(self,eid):
-        res=self.provideFromCache(eid)
+        res=self.provideFromDB(eid)
         if not res:
-            res=self.provideFromDB(eid)
+            res=self.provideFromCache(eid)
         if not res and self.corpus:
             res=self.provideFromCorpus(eid)
         return res
@@ -81,10 +96,22 @@ class ArticleFeatureProvider(FeatureProvider):
                 CacheUtil.dumpArticleFeature(feature)
         self.feature=feature
         return feature
+    
+    def clear(self):
+        del self.feature
             
     
 class UserInterestProvider(FeatureProvider):
+    '''
+    @summary: 通过简单对用户看过的所有新闻的特征向量求均值得到用户特征以备后面使用基于用户的协同过滤
+    '''
     
+    def __init__(self,articleFeatureProvider=None):
+        if articleFeatureProvider:
+            self.articleFeatureProvider=articleFeatureProvider
+        else:
+            self.articleFeatureProvider=ArticleFeatureProvider()
+        self.interestNum=len(self.articleFeatureProvider.provide(Article.objects[0].eid))
     def provideFromDB(self,uid):
         return UserFeature.loadField(uid,"interest")
     
@@ -99,25 +126,69 @@ class UserInterestProvider(FeatureProvider):
     def provideByAvgTopic(self,uid):
         user=User()
         user.eid=uid
-        clicked=user.getAllClickedFromDB()
+        clicked=user.getAllClicked()
+        vec=np.array([0.0]*self.interestNum)
+        for articleId in clicked:
+            vec+=np.array(self.articleFeatureProvider.provide(articleId))
+        vec/=len(clicked)
+        return list(vec)
     
     def provideAllFromDB(self):
-        pass
+        interest=[]
+        for item in UserFeature.objects.no_cache():
+            interest.append(item.interest)
+        if len(interest)>0:
+            self.interest=interest
+            return interest
+        else:
+            return None
     
     def provideAllByAvgTopic(self):
-        pass
+        interest=[]
+        for user in User.objects.no_cache():
+            clicked=user.getAllClicked() 
+            vec=np.array([0.0]*self.interestNum)
+            for articleId in clicked:
+                vec+=np.array(self.articleFeatureProvider.provide(articleId))
+            vec/=len(clicked)
+            interest.append(list(vec))
+        if len(interest)>0:
+            self.interest=interest
+            return interest
+        else:
+            return None
     
     def provideAllFromCache(self):
-        pass
+        if not self.interest:
+            self.interest=CacheUtil.loadUserInterest()
+        return self.interest
     
     def provide(self,uid):
-        pass
+        res=self.provideFromDB(uid)
+        if not res:
+            res=self.provideFromCache(uid)
+        if not res and self.articleFeatureProvider:
+            res=self.provideByAvgTopic(uid)
+        return res
     
     def provideAll(self):
-        pass
+        if self.interest:
+            return self.interest
+        interest=self.provideAllFromCache()
+        if not interest and self.articleFeatureProvider:
+            interest=self.provideAllByAvgTopic()
+            if interest:
+                CacheUtil.dumpUserInterest(interest)
+        self.interest=interest
+        return interest
+    
+    def clear(self):
+        del self.interest
     
 class UserParamProvider(FeatureProvider):
-    pass
+    '''
+    @summary: 使用某种模型对每一个用户进行训练，将参数记录作为用户特征，以备后续预测器使用
+    '''
 
 
 class AFCategory(Enum):
@@ -139,4 +210,15 @@ class ProviderFactory:
     
     @staticmethod
     def getProvider(destCategory,featureCategory):
-        pass
+        if destCategory==Category.ARTICLE:
+            if featureCategory==AFCategory.TOPIC:
+                return ArticleFeatureProvider()
+        elif destCategory==Category.USER:
+            if featureCategory==UFCategory.INTEREST:
+                return UserInterestProvider()
+            elif featureCategory==UFCategory.PARAM:
+                return UserParamProvider()
+            else:
+                return None
+        else:
+            return None

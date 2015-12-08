@@ -17,8 +17,9 @@ class BaseEntity:
     
     @classmethod
     def loadField(clazz,eid,field):
-        queryResult=clazz.objects(eid=eid)
-        return list(map(lambda x:getattr(x, field),queryResult))
+        queryResult=clazz.objects(eid=eid).only(field)
+        return getattr(queryResult[0], field) if len(queryResult)>0 else None
+     #   return list(map(lambda x:getattr(x, field),queryResult))
     
     @classmethod
     def updateField(clazz,eid,field,value):
@@ -98,6 +99,12 @@ class User(Document,BaseEntity):
     def getAllClickedFromDB(self):
         queryResults=Record.objects(userId=self.eid).only('articleId')
         return list(map(lambda x:getattr(x,'articleId'),queryResults))
+    
+    def getAllClickedFromCache(self):
+        pass
+    
+    def getAllClicked(self):
+        return self.getAllClickedFromDB()
     
 class WordBag(Document,BaseEntity):
     eid=StringField(max_length=20)

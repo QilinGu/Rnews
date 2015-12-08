@@ -15,7 +15,13 @@ class CacheUtil:
     path["topic"]=CacheUtil.path["data"]+"topic.mm"
     path["articleFeature"]=CacheUtil.path["data"]+"articleFeature.pk"
     path["userInterest"]=CacheUtil.path["data"]+"userInterest.pk"
-        
+    UserToClicked=None
+    ArticleToClicked=None
+    
+    @staticmethod
+    def clear():
+        pass
+    
     @staticmethod
     def loadDictionary():
         return corpora.dictionary.Dictionary.load(CacheUtil.path["dictionary"])
@@ -72,11 +78,19 @@ class CacheUtil:
         pk.load(open(CacheUtil.path["articleFeature"],'r'))
         
     @staticmethod
-    def dumpUserFeature(feature):
-        pk.dump(feature,open(CacheUtil.path["userFeature"],'w'))
+    def dumpUserInterest(interest):
+        pk.dump(interest,open(CacheUtil.path["userInterest"],'w'))
         
     @staticmethod
     def loadUserInterest():
         if not os.path.exists(CacheUtil.path["userInterest"]):
             return None
         pk.load(open(CacheUtil.path["userInterest"],'r'))
+        
+    @staticmethod
+    def getUserToClicked():
+        pass
+    
+    @staticmethod
+    def getArticleToClicked():
+        pass
