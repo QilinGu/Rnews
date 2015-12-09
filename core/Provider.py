@@ -201,7 +201,6 @@ class UserParamProvider(Provider):
 
 
 class UserFriendProvider(Provider):
-    # Task
     
     def __init__(self,trainer=None):
         super.__init__()
