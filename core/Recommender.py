@@ -5,6 +5,7 @@ Created on 2015年12月7日
 '''
 from core.Predictor import PredictorFactory
 from model.Entity import *
+from enum import Enum
 from utils.CacheUtil import CacheUtil
 class Recommender:
     
@@ -40,5 +41,13 @@ class BaseRecommender(Recommender):
             uid=CacheUtil.indexToUser[i]
             res.append(self.recommend(uid))
         return res
-        
-        
+
+class RecommenderCategory(Enum):
+    TOPK="base"
+      
+class RecommenderFactory:
+    
+    @staticmethod
+    def getRecommender(category=RecommenderCategory.TOPK):
+        if category==RecommenderCategory.TOPK:
+            return BaseRecommender()

@@ -74,7 +74,7 @@ class DBUtil:
             print("Friends of User "+key+" write successfully!")
     
     @staticmethod
-    def dumpFriend(uid,friend):
+    def dumpFriendsForUser(uid,friend):
         relations=FriendRelation.objects(userId=uid)
         for relation in relations:
             relation.delete()
@@ -84,4 +84,29 @@ class DBUtil:
             relation.targetId=pair[0]
             relation.similarity=pair[1]
             relation.save()
+            
+    @staticmethod
+    def dumpRecommendation(rec):
+        Recommendation.drop_collection()
+        for user in User.objects.no_cache():
+            for pair in rec[user.index]:
+                recommendation=Recommendation()
+                recommendation.userId=user.eid
+                recommendation.articleId=pair[0]
+                recommendation.score=pair[1]
+                recommendation.save()
+            print("Recommendation For User "+user.eid+" already saved!")
+    
+    
+    @staticmethod
+    def dumpRecommendationForUser(uid,rec):
+        recommendations=Recommendation.objects(userId=uid)
+        for recommendation in recommendations:
+            recommendation.delete()
+        for pair in rec:
+            recommendation=Recommendation()
+            recommendation.userId=uid
+            recommendation.articleId=pair[0]
+            recommendation.score=pair[1]
+            recommendation.save()
             
