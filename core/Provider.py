@@ -7,34 +7,69 @@ from model.Entity import *
 from enum import Enum
 from utils.CacheUtil import CacheUtil
 import numpy as np
+from core.Trainer import FriendTrainer
 class Provider:
     
     def __init__(self):
-        pass
-        
+        self.cache=None
+    
+    def provideFromCache(self,eid,load=False):
+        return None
+    
+    def provideFromDB(self,eid):
+        return None
+    
+    def provideFromCompute(self,eid):
+        return None
+    
+    def provideAllFromDB(self):
+        return None
+    
+    def provideAllFromCache(self):
+        return None
+    
+    def provideAllFromCompute(self):
+        return None
+      
     def provide(self,eid):
         '''
         @summary: 为单个对象提供特征向量
         '''
-        pass
+        res=self.provideFromCache(eid,False)
+        if not res:
+            res=self.provideFromDB(eid)
+        if not res:
+            res=self.provideFromCompute(eid)
+        return res
     
     def provideAll(self):
         '''
         @summary: 以矩阵的形式为所有对象提供特征向量
         '''
-        pass
+        if self.isCached():
+            return self.cache
+        res=self.provideAllFromCache()
+        if not res:
+            res=self.provideAllFromDB()
+        if not res:
+            res=self.provideAllFromCompute()
+        self.setCache(res)
+        return res
     
     def clear(self):
         '''
         @summary: 清空对象占有的缓存
         '''
-        pass
+        del self.cache
     
-    def cache(self,data):
+    def setCache(self,data):
         '''
         @summary: 设置对象的特征缓存
         '''
-        pass
+        self.cache=data
+    
+    def isCached(self):
+        return True if self.cache else False
     
 class ArticleFeatureProvider(Provider):
     '''
@@ -42,6 +77,7 @@ class ArticleFeatureProvider(Provider):
     '''
     
     def __init__(self,corpus=None):
+        super.__init__()
         self.corpus=corpus
         
     def setCorpus(self,corpus):
@@ -50,65 +86,44 @@ class ArticleFeatureProvider(Provider):
     def provideFromDB(self,articleId):
         return ArticleFeaure.loadField("topicVector")
     
-    def provideFromCorpus(self,eid):
+    def provideFromCompute(self,eid):
+        if not self.corpus:
+            return None
         index=Article.loadField(eid,"index")
         return list(map(lambda x:x[1],self.corpus[index]))
     
-    def provideFromCache(self,eid):
-        if not self.feature:
-            self.feature=CacheUtil.loadArticleFeature()
-        if not self.feature:
+    def provideFromCache(self,eid,load=False):
+        if not self.isCached() and load:
+            self.setCache(CacheUtil.loadArticleFeature())
+        if not self.isCached():
             return None
         index=Article.loadField(eid,"index")
-        return self.feature[index]
+        return self.cache[index]
     
     def provideAllFromDB(self):
         feature=[]
         for item in ArticleFeaure.objects.no_cache():
             feature.append(item.topicVector)
         if len(feature)>0:
-            self.feature=feature
+            self.setCache(feature)
             return feature
         else:
             return None
     
     def provideAllFromCache(self):
-        if not self.feature:
-            self.feature=CacheUtil.loadArticleFeature()
-        return self.feature
+        if not self.isCached():
+            self.setCache(CacheUtil.loadArticleFeature())
+        return self.cache
     
-    def provideAllFromCorpus(self):
+    def provideAllFromCompute(self):
         feature=[]
         for doc in self.corpus:
             feature.append(list(map(lambda x:x[1],doc)))
-        self.feature=feature
+        if len(feature)==0:
+            feature=None
+        self.setCache(feature)
         return feature
     
-    def provide(self,eid):
-        res=self.provideFromDB(eid)
-        if not res:
-            res=self.provideFromCache(eid)
-        if not res and self.corpus:
-            res=self.provideFromCorpus(eid)
-        return res
-    
-    def provideAll(self):
-        if self.feature:
-            return self.feature
-        feature=self.provideAllFromCache()
-        if not feature and self.corpus:
-            feature=self.provideAllFromCorpus()
-            if feature:
-                CacheUtil.dumpArticleFeature(feature)
-        self.feature=feature
-        return feature
-    
-    def clear(self):
-        del self.feature
-        
-    def cache(self, data):
-        self.feature=data
-            
     
 class UserInterestProvider(Provider):
     '''
@@ -116,6 +131,7 @@ class UserInterestProvider(Provider):
     '''
     
     def __init__(self,articleFeatureProvider=None):
+        super.__init__()
         if articleFeatureProvider:
             self.articleFeatureProvider=articleFeatureProvider
         else:
@@ -124,15 +140,15 @@ class UserInterestProvider(Provider):
     def provideFromDB(self,uid):
         return UserFeature.loadField(uid,"interest")
     
-    def provideFromCache(self,uid):
-        if not self.interest:
-            self.interest=CacheUtil.loadUserInterest()
-        if not self.interest:
+    def provideFromCache(self,uid,load=False):
+        if not self.isCached() and load:
+            self.setCache(CacheUtil.loadUserInterest())
+        if not self.isCached():
             return None
         index=User.loadField(uid,"index")
-        return self.interest[index]
+        return self.cache[index]
     
-    def provideByAvgTopic(self,uid):
+    def provideFromCompute(self,uid):
         user=User()
         user.eid=uid
         clicked=user.getAllClicked()
@@ -147,12 +163,14 @@ class UserInterestProvider(Provider):
         for item in UserFeature.objects.no_cache():
             interest.append(item.interest)
         if len(interest)>0:
-            self.interest=interest
+            self.setCache(interest)
             return interest
         else:
             return None
     
-    def provideAllByAvgTopic(self):
+    def provideAllFromCompute(self):
+        if not self.articleFeatureProvider:
+            return None
         interest=[]
         for user in User.objects.no_cache():
             clicked=user.getAllClicked() 
@@ -162,40 +180,18 @@ class UserInterestProvider(Provider):
             vec/=len(clicked)
             interest.append(list(vec))
         if len(interest)>0:
-            self.interest=interest
+            self.setCache(interest)
             return interest
         else:
             return None
     
     def provideAllFromCache(self):
-        if not self.interest:
-            self.interest=CacheUtil.loadUserInterest()
-        return self.interest
+        if not self.isCached():
+            self.setCache(CacheUtil.loadUserInterest())
+        return self.cache
     
-    def provide(self,uid):
-        res=self.provideFromDB(uid)
-        if not res:
-            res=self.provideFromCache(uid)
-        if not res and self.articleFeatureProvider:
-            res=self.provideByAvgTopic(uid)
-        return res
     
-    def provideAll(self):
-        if self.interest:
-            return self.interest
-        interest=self.provideAllFromCache()
-        if not interest and self.articleFeatureProvider:
-            interest=self.provideAllByAvgTopic()
-            if interest:
-                CacheUtil.dumpUserInterest(interest)
-        self.interest=interest
-        return interest
     
-    def clear(self):
-        del self.interest
-        
-    def cache(self, data):
-        self.interest=data
     
 class UserParamProvider(Provider):
     '''
@@ -206,8 +202,47 @@ class UserParamProvider(Provider):
 
 class UserFriendProvider(Provider):
     # Task
-    pass
-
+    
+    def __init__(self,trainer=None):
+        super.__init__()
+        self.trainer=trainer if trainer else FriendTrainer()
+        
+    def provideFromCache(self,uid,load=False):
+        if not self.isCached() and load:
+            self.setCache(CacheUtil.loadUserFriends())
+        if self.isCached():
+            if self.cache.has_key(uid):
+                return self.cache[uid]
+        return None
+    
+    def provideFromDB(self,uid):
+        return UserFeature.loadField(uid,"friends")
+    
+    def provideFromCompute(self,uid):
+        return self.trainer.train()
+    
+    def provideAllFromCache(self):
+        if not self.isCached():
+            self.setCache(CacheUtil.loadUserFriends())
+        return self.cache
+    
+    def provideAllFromDB(self):
+        friends={}
+        for uf in UserFeature.objects.exclude("interest").no_cache():
+            friends[uf.eid]=uf.friends
+        if len(friends)==0:
+            friends=None
+        self.setCache(friends)
+        return friends
+    
+    def provideAllFromCompute(self):
+        friends=None
+        if self.trainer:
+            friends=self.trainer.trainAll()
+            self.setCache(friends)
+        return friends
+    
+    
 class AFCategory(Enum):
     TOPIC="topic"
 
@@ -236,6 +271,8 @@ class ProviderFactory:
                 return UserInterestProvider()
             elif featureCategory==UFCategory.PARAM:
                 return UserParamProvider()
+            elif featureCategory==UFCategory.FRIEND:
+                return UserFriendProvider()
             else:
                 return None
         else:

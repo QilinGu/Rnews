@@ -13,7 +13,9 @@ class Predictor(object):
     
     def getParam(self,userId):
         return self.ufProvider.provide(userId)
-            
+    
+    def getVector(self,articleId):
+        return self.afProvider.provide(articleId)  
     
     def predict(self,userId,articleId):
         pass
@@ -34,7 +36,7 @@ class SimPredictor(Predictor):
         super().__init__()
     
     def predict(self, userId, articleId):
-        Predictor.predict(self, userId, articleId)
+        pass
 
 
 class FriendPredictor(Predictor):

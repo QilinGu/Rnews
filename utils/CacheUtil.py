@@ -15,6 +15,7 @@ class CacheUtil:
     path["topic"]=CacheUtil.path["data"]+"topic.mm"
     path["articleFeature"]=CacheUtil.path["data"]+"articleFeature.pk"
     path["userInterest"]=CacheUtil.path["data"]+"userInterest.pk"
+    path["userFriends"]=CacheUtil.path["data"]+"userFriends.pk"
     UserToClicked=None
     ArticleToClicked=None
     
@@ -86,7 +87,17 @@ class CacheUtil:
         if not os.path.exists(CacheUtil.path["userInterest"]):
             return None
         pk.load(open(CacheUtil.path["userInterest"],'r'))
+    
+    @staticmethod
+    def dumpUserFriends(friends):
+        pk.dump(friends,open(CacheUtil.path["userFriends"],'w'))
         
+    @staticmethod
+    def loadUserFriends():
+        if not os.path.exists(CacheUtil.path["userFriends"]):
+            return None
+        pk.load(open(CacheUtil.path["userFriends"],'r'))
+       
     @staticmethod
     def getUserToClicked():
         pass
