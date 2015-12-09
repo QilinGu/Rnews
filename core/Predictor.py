@@ -20,4 +20,6 @@ class Predictor(object):
     
     def clear(self):
         pass
-    
+
+
+        

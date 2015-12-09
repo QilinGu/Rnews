@@ -9,6 +9,7 @@ from gensim import corpora, models
 from enum import Enum
 from gensim.models import ldamodel
 from utils.CacheUtil import CacheUtil
+from utils.DBUtil import DBUtil
 class WordProviderFromDB(object):
     def __iter__(self):
         for wordBag in WordBag.objects.no_cache():
@@ -66,4 +67,4 @@ class CorpusHandler:
         if not self.corpus:
             self.generateCorpus()
         corpus=self.generateTopic(method, numTopics)
-        CacheUtil.dumpTopicToDB(corpus)
+        DBUtil.dumpTopic(corpus)
