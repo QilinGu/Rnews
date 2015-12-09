@@ -16,4 +16,17 @@ class Trainer(object):
     
     def clear(self):
         pass
+
+
+class FriendTrainer(Trainer):
+    '''
+    @summary: 计算与用户相似的用户，为基于用户的协同过滤算法做准备
+    '''
+
+   
+class TrainerFactory(object):
+    
+    @staticmethod
+    def getTrainer(category):
+        pass
     

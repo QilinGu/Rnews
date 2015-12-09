@@ -7,7 +7,7 @@ from model.Entity import *
 from enum import Enum
 from utils.CacheUtil import CacheUtil
 import numpy as np
-class FeatureProvider:
+class Provider:
     
     def __init__(self):
         pass
@@ -30,7 +30,13 @@ class FeatureProvider:
         '''
         pass
     
-class ArticleFeatureProvider(FeatureProvider):
+    def cache(self,data):
+        '''
+        @summary: 设置对象的特征缓存
+        '''
+        pass
+    
+class ArticleFeatureProvider(Provider):
     '''
     @summary: 提供由新闻主题生成的特征
     '''
@@ -99,9 +105,12 @@ class ArticleFeatureProvider(FeatureProvider):
     
     def clear(self):
         del self.feature
+        
+    def cache(self, data):
+        self.feature=data
             
     
-class UserInterestProvider(FeatureProvider):
+class UserInterestProvider(Provider):
     '''
     @summary: 通过简单对用户看过的所有新闻的特征向量求均值得到用户特征以备后面使用基于用户的协同过滤
     '''
@@ -184,12 +193,20 @@ class UserInterestProvider(FeatureProvider):
     
     def clear(self):
         del self.interest
+        
+    def cache(self, data):
+        self.interest=data
     
-class UserParamProvider(FeatureProvider):
+class UserParamProvider(Provider):
     '''
     @summary: 使用某种模型对每一个用户进行训练，将参数记录作为用户特征，以备后续预测器使用
     '''
+    pass
 
+
+class UserFriendProvider(Provider):
+    # Task
+    pass
 
 class AFCategory(Enum):
     TOPIC="topic"
@@ -197,6 +214,7 @@ class AFCategory(Enum):
 class UFCategory(Enum):
     INTEREST="interest"
     PARAM="param"
+    FRIEND="friend"
     
 class Category(Enum):
     USER="user"

@@ -9,6 +9,9 @@ connect('Rnews',host="localhost",port=5000)
 
 
 class BaseEntity:
+    '''
+    @summary: 父类，为了便于之后的数据操作，根据Id读取对象和特定属性
+    '''
     
     @classmethod
     def load(clazz,eid):
@@ -45,6 +48,11 @@ class BaseEntity:
     
     @classmethod
     def persist(clazz,entity):
+        '''
+        :summary :更新id相同的，如果没有则插入
+        :param clazz:
+        :param entity:
+        '''
         queryResult=clazz.objects(eid=entity.eid)
         if len(queryResult)==0:
             entity.save()
@@ -94,7 +102,6 @@ class User(Document,BaseEntity):
     eid=StringField(max_length=20)
     index=LongField()
     recommendation=ListField(StringField(max_length=20))
-    friends=ListField(StringField(max_length=20))
     
     def getAllClickedFromDB(self):
         queryResults=Record.objects(userId=self.eid).only('articleId')
@@ -117,3 +124,4 @@ class ArticleFeaure(Document,BaseEntity):
 class UserFeature(Document,BaseEntity):
     eid=StringField(max_length=20)
     interest=ListField(DecimalField())
+    friends=ListField(StringField(max_length=20))
