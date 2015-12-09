@@ -39,7 +39,7 @@ class SimPredictor(Predictor):
 
 class FriendPredictor(Predictor):
     '''
-    @summary: 根据基于用户的协同过滤来计算用户对新闻的感兴趣成都
+    @summary: 根据基于用户的协同过滤来计算用户对新闻的感兴趣程度
     '''
     
     def predict(self,userId,articleId):
