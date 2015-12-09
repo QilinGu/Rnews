@@ -7,6 +7,7 @@ from utils.CorpusHandler import CorpusMode, TopicMethod
 from gensim import corpora
 import pickle as pk
 import os
+from model.Entity import *
 class CacheUtil:
     path={}
     path["data"]="/Volumes/MAC/Rnews/data/"
@@ -18,6 +19,8 @@ class CacheUtil:
     path["userFriends"]=CacheUtil.path["data"]+"userFriends.pk"
     UserToClicked=None
     ArticleToClicked=None
+    userToIndex=None
+    indexToUser=None
     
     @staticmethod
     def clear():
@@ -105,3 +108,18 @@ class CacheUtil:
     @staticmethod
     def getArticleToClicked():
         pass
+    
+    @staticmethod
+    def getIndexForUser(uid):
+        if not CacheUtil.userToIndex:
+            tmp={}
+            for user in User.objects.no_cache():
+                tmp[user.eid]=user.index
+            CacheUtil.userToIndex=tmp
+        return CacheUtil.userToIndex[uid]
+    
+    @staticmethod
+    def getUidForIndex(index):
+        if not CacheUtil.indexToUser:
+            CacheUtil.indexToUser=list(map(lambda x:x.eid,User.objects))
+        return CacheUtil.indexToUser[index]

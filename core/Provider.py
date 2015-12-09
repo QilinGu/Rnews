@@ -201,7 +201,9 @@ class UserParamProvider(Provider):
 
 
 class UserFriendProvider(Provider):
-    
+    '''
+    @summary: 取与用户相似的用户以进行基于用户的协同过滤
+    '''
     def __init__(self,trainer=None):
         super.__init__()
         self.trainer=trainer if trainer else FriendTrainer()
@@ -215,7 +217,10 @@ class UserFriendProvider(Provider):
         return None
     
     def provideFromDB(self,uid):
-        return UserFeature.loadField(uid,"friends")
+        friend=[]
+        for relation in FriendRelation.objects(userId=uid):
+            friend.append((relation.targetId,relation.similarity))
+        return friend
     
     def provideFromCompute(self,uid):
         return self.trainer.train()
@@ -227,10 +232,11 @@ class UserFriendProvider(Provider):
     
     def provideAllFromDB(self):
         friends={}
-        for uf in UserFeature.objects.exclude("interest").no_cache():
-            friends[uf.eid]=uf.friends
-        if len(friends)==0:
-            friends=None
+        for relation in FriendRelation.objects:
+            uid=relation.userId
+            if not friends.has_key(uid):
+                friends[uid]=[]
+            friends[uid].append((relation.targetId,relation.similarity))
         self.setCache(friends)
         return friends
     
@@ -241,7 +247,18 @@ class UserFriendProvider(Provider):
             self.setCache(friends)
         return friends
     
+    def simmilarity(self,userId,targetId):
+        relations=FriendRelation.objects(userId=userId,targetId=targetId).only("similarity")
+        return 0 if len(relations)==0 else relations[0].similarity
+            
     
+
+class RecommendProvider(Provider):
+    '''
+    @summary: 提供推荐结果，供Evaluator分析使用
+    '''
+    pass
+  
 class AFCategory(Enum):
     TOPIC="topic"
 
@@ -249,6 +266,7 @@ class UFCategory(Enum):
     INTEREST="interest"
     PARAM="param"
     FRIEND="friend"
+    RECOMMEND="recommend"
     
 class Category(Enum):
     USER="user"
@@ -257,7 +275,7 @@ class Category(Enum):
 
 class ProviderFactory:
     '''
-    @summary: 工厂模式，通过选项返回合适的FeatureProvider
+    @summary: 工厂模式，通过选项返回合适的Provider
     '''
     
     @staticmethod
@@ -272,6 +290,8 @@ class ProviderFactory:
                 return UserParamProvider()
             elif featureCategory==UFCategory.FRIEND:
                 return UserFriendProvider()
+            elif featureCategory==UFCategory.RECOMMEND:
+                return RecommendProvider()
             else:
                 return None
         else:

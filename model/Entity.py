@@ -84,6 +84,16 @@ class Record(Document):
         num=Record.objects(userId=record.userId,articleId=record.articleId).count()
         if num == 0:
             record.save()
+    
+    @staticmethod
+    def getUserForArticle(articleId):
+        queryResults=Record.objects(articleId=articleId).only("userId")
+        return list(map(lambda x:getattr(x, "userId"),queryResults))
+    
+    @staticmethod
+    def getArticleForUser(userId):
+        queryResults=Record.objects(userId=userId).only("articleId")
+        return list(map(lambda x:getattr(x, "articleId"),queryResults))
         
     
     @staticmethod
@@ -101,7 +111,6 @@ class Article(Document,BaseEntity):
 class User(Document,BaseEntity):
     eid=StringField(max_length=20)
     index=LongField()
-    recommendation=ListField(StringField(max_length=20))
     
     def getAllClickedFromDB(self):
         queryResults=Record.objects(userId=self.eid).only('articleId')
@@ -124,4 +133,22 @@ class ArticleFeaure(Document,BaseEntity):
 class UserFeature(Document,BaseEntity):
     eid=StringField(max_length=20)
     interest=ListField(DecimalField())
-    friends=ListField(StringField(max_length=20))
+    
+class FriendRelation(Document):
+    userId=StringField(required=True)
+    targetId=StringField(required=True)
+    similarity=DecimalField()
+    
+    @staticmethod
+    def persist(relation):
+        queryResult=FriendRelation.objects(userId=relation.userId,targetId=relation.targetId)
+        if len(queryResult)==0:
+            relation.save()
+        else:
+            queryResult[0].delete()
+            relation.save()
+
+class Recommendation(Document):
+    userId=StringField()
+    articleId=StringField()
+    score=DecimalField()           

@@ -6,7 +6,7 @@ Created on 2015年12月5日
 import codecs
 
 from model.Entity import *
-from datetime import datetime
+from utils.FormatUtil import FormatUtil
 class DBUtil:
     
     @staticmethod
@@ -41,21 +41,14 @@ class DBUtil:
             article.eid=record.articleId
             article.title=tmp[3]
             article.content=tmp[4]
-            article.publistDate=DBUtil.transferDate(tmp[-1])
+            article.publistDate=FormatUtil.transferDate(tmp[-1])
             article.index=article_count
             if Article.insert(article):
                 article_count+=1
             count+=1
             del user,record,article
             
-    @staticmethod
-    def transferDate(dateStr):
-        year=int(dateStr[0:4])
-        month=int(dateStr[5:7])
-        day=int(dateStr[8:10])
-        hour=int(dateStr[11:-2].split(':')[0])
-        minute=int(dateStr[11:-2].split(':')[1])
-        return datetime(year,month,day,hour,minute)
+
      
     @staticmethod
     def dumpTopic(corpus):
@@ -67,3 +60,28 @@ class DBUtil:
             feature.topicVector=vector
             ArticleFeaure.persist(feature)
             print("Topic of Article "+feature.eid+" saved successfully!")
+            
+    @staticmethod
+    def dumpFriends(friends):
+        FriendRelation.drop_collection()
+        for key,val in friends.items():
+            for pair in val:
+                relation=FriendRelation()
+                relation.userId=key
+                relation.targetId=val[0]
+                relation.similarity=val[1]
+                relation.save()
+            print("Friends of User "+key+" write successfully!")
+    
+    @staticmethod
+    def dumpFriend(uid,friend):
+        relations=FriendRelation.objects(userId=uid)
+        for relation in relations:
+            relation.delete()
+        for pair in friend:
+            relation=FriendRelation()
+            relation.userId=uid
+            relation.targetId=pair[0]
+            relation.similarity=pair[1]
+            relation.save()
+            
