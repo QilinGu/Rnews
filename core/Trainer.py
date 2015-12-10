@@ -3,7 +3,7 @@ Created on 2015年12月9日
 @summary: 将用户是否点击某个新闻看成是一个分类或回归问题，对每个用户训练和预测他对某个新闻的得分，最简单的例子是用户特征与新闻特征直接计算余弦相似度
 @author: suemi
 '''
-from core.Provider import UserInterestProvider
+from core.Provider import UserInterestProvider, ProviderFactory
 from sklearn.neighbors.unsupervised import NearestNeighbors
 from faulthandler import disable
 from utils.CacheUtil import CacheUtil
@@ -32,6 +32,10 @@ class FriendTrainer(Trainer):
         self.provider=provider if provider else UserInterestProvider()
         self.model=None
         
+    def config(self,friendNum=None,category=None):
+        del self.model
+        self.friendNum=friendNum if friendNum else self.friendNum
+        self.provider=ProviderFactory.getProvider(featureCategory=category) if category else self.provider
     
     def train(self, userId):
         if not self.model:
@@ -48,7 +52,7 @@ class FriendTrainer(Trainer):
         if not self.model:
             self.model=NearestNeighbors(n_neighbors=self.friendNum+1,algorithm='auto').fit(self.provider.provideAll())
         res={}
-        distances,indexs=self.model.kneighbors(self.provider.provideAll)
+        distances,indexs=self.model.kneighbors(self.provider.provideAll())
         for count in range(len(indexs)):
             uid=CacheUtil.indexToUser(count)
             similarity=self.distanceToSimilarity(distances[count])

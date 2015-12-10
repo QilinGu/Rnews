@@ -21,6 +21,7 @@ class CacheUtil:
     ArticleToClicked=None
     userToIndex=None
     indexToUser=None
+    articleToIndex=None
     
     @staticmethod
     def clear():
@@ -123,3 +124,13 @@ class CacheUtil:
         if not CacheUtil.indexToUser:
             CacheUtil.indexToUser=list(map(lambda x:x.eid,User.objects))
         return CacheUtil.indexToUser[index]
+    
+    @staticmethod
+    def getIndexForArticle(aid):
+        if not CacheUtil.articleToIndex:
+            tmp={};count=0
+            for article in Article.objects.only("eid").no_cache():
+                tmp[article.eid]=count
+                count+=1
+            CacheUtil.articleToIndex=tmp
+        return CacheUtil.articleToIndex[aid]

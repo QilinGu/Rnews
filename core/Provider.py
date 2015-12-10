@@ -257,7 +257,26 @@ class RecommendProvider(Provider):
     '''
     @summary: 提供推荐结果，供Evaluator分析使用
     '''
-    pass
+    def provideFromDB(self,eid):
+        res=list(map(lambda x:(x.articleId,x.score),Recommendation.objects(userId=eid)))
+        return res if len(res)>0 else None
+    
+    def provideAllFromDB(self):
+        res=[]
+        for user in User.objects.no_cache():
+            tmp=self.provideFromDB(user.eid)
+            res.append(tmp if tmp else [])
+        if len(res)==0:
+            res=None
+        self.setCache(res) 
+        return res
+    
+    def provideIndexMatrix(self):
+        res=[]
+        for user in User.objects:
+            tmp=list(map(lambda x:CacheUtil.articleToIndex(x.articleId),Recommendation.objects(userId=user.eid)))
+            res.append(tmp)
+        return res
   
 class AFCategory(Enum):
     TOPIC="topic"
@@ -279,7 +298,7 @@ class ProviderFactory:
     '''
     
     @staticmethod
-    def getProvider(destCategory,featureCategory):
+    def getProvider(featureCategory,destCategory=Category.USER):
         if destCategory==Category.ARTICLE:
             if featureCategory==AFCategory.TOPIC:
                 return ArticleFeatureProvider()

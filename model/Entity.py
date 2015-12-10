@@ -70,6 +70,7 @@ class Record(Document):
     userId=StringField(max_length=20)
     articleId=StringField(max_length=20)
     clickDate=LongField()
+    isTrain=BooleanField(default=True)
     
     def getArticle(self):
         queryResult=Article.objects(eid=self.articleId)
@@ -87,12 +88,12 @@ class Record(Document):
     
     @staticmethod
     def getUserForArticle(articleId):
-        queryResults=Record.objects(articleId=articleId).only("userId")
+        queryResults=Record.objects(articleId=articleId,isTrain=True).only("userId")
         return list(map(lambda x:getattr(x, "userId"),queryResults))
     
     @staticmethod
     def getArticleForUser(userId):
-        queryResults=Record.objects(userId=userId).only("articleId")
+        queryResults=Record.objects(userId=userId,isTrain=True).only("articleId")
         return list(map(lambda x:getattr(x, "articleId"),queryResults))
         
     
@@ -113,7 +114,7 @@ class User(Document,BaseEntity):
     index=LongField()
     
     def getAllClickedFromDB(self):
-        queryResults=Record.objects(userId=self.eid).only('articleId')
+        queryResults=Record.objects(userId=self.eid,isTrain=True).only('articleId')
         return list(map(lambda x:getattr(x,'articleId'),queryResults))
     
     def getAllClickedFromCache(self):
