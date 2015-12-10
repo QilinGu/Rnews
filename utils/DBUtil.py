@@ -48,7 +48,16 @@ class DBUtil:
             count+=1
             del user,record,article
             
-
+    @staticmethod
+    def dumpArticleFeature(feature):
+        count=0
+        for article in Article.objects.only("eid").no_cache():
+            af=ArticleFeaure()
+            af.eid=article.eid
+            af.topicVector=feature[count]
+            ArticleFeaure.persist(af)
+            count+=1
+            
      
     @staticmethod
     def dumpTopic(corpus):
@@ -60,7 +69,15 @@ class DBUtil:
             feature.topicVector=vector
             ArticleFeaure.persist(feature)
             print("Topic of Article "+feature.eid+" saved successfully!")
-            
+    
+    @staticmethod
+    def dumpInterest(interests):
+        for user in User.objects.no_cache():
+            uf=UserFeature()
+            uf.eid=user.eid
+            uf.interest=interests[user.index]
+            UserFeature.persist(uf)
+           
     @staticmethod
     def dumpFriends(friends):
         FriendRelation.drop_collection()

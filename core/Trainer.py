@@ -7,10 +7,12 @@ from core.Provider import UserInterestProvider, ProviderFactory
 from sklearn.neighbors.unsupervised import NearestNeighbors
 from faulthandler import disable
 from utils.CacheUtil import CacheUtil
+from utils.DBUtil import DBUtil
 class Trainer(object):
 
-    def __init__(self, provider):
-        pass
+    def __init__(self, provider=None):
+        self.autoUpdate=False
+        self.provider=provider
     
     def train(self,userId):
         pass
@@ -20,7 +22,15 @@ class Trainer(object):
     
     def clear(self):
         pass
-
+    
+    def onUpdate(self):
+        self.autoUpdate=True
+        
+    def offUpdate(self):
+        self.autoUpdate=False
+    
+    def isUpdate(self):
+        return self.autoUpdate
 
 class FriendTrainer(Trainer):
     '''
@@ -28,6 +38,7 @@ class FriendTrainer(Trainer):
     '''
     
     def __init__(self,friendNum=5,provider=None):
+        super.__init__(provider)
         self.friendNum=friendNum
         self.provider=provider if provider else UserInterestProvider()
         self.model=None
@@ -46,6 +57,8 @@ class FriendTrainer(Trainer):
         res=[]
         for i in range(self.friendNum):
             res.append((neighborList[i],similarity[i]))
+        if self.autoUpdate:
+            DBUtil.dumpFriendsForUser(userId, res)
         return res
         
     def trainAll(self):
@@ -60,6 +73,8 @@ class FriendTrainer(Trainer):
             res[uid]=[]
             for i in range(self.friendNum):
                 res[uid].append((neighborList[i],similarity[i]))
+        if self.isUpdate():
+            DBUtil.dumpFriends(res)
         return res
         
     def clear(self):

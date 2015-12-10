@@ -8,10 +8,12 @@ from enum import Enum
 from utils.CacheUtil import CacheUtil
 import numpy as np
 from core.Trainer import FriendTrainer
+from utils.DBUtil import DBUtil
 class Provider:
     
     def __init__(self):
         self.cache=None
+        self.autoUpdate=False
     
     def provideFromCache(self,eid,load=False):
         return None
@@ -71,6 +73,18 @@ class Provider:
     def isCached(self):
         return True if self.cache else False
     
+    def onUpdate(self):
+        '''
+        @summary: 打开自动更新，当通过计算得出结果时，会自动更新数据库中的相关记录
+        '''
+        self.autoUpdate=True
+        
+    def offUpdate(self):
+        self.autoUpdate=False
+    
+    def isUpdate(self):
+        return self.autoUpdate
+    
 class ArticleFeatureProvider(Provider):
     '''
     @summary: 提供由新闻主题生成的特征
@@ -90,7 +104,13 @@ class ArticleFeatureProvider(Provider):
         if not self.corpus:
             return None
         index=Article.loadField(eid,"index")
-        return list(map(lambda x:x[1],self.corpus[index]))
+        res=list(map(lambda x:x[1],self.corpus[index]))
+        if self.isUpdate():
+            af=ArticleFeaure()
+            af.eid=eid
+            af.topicVector=res
+            ArticleFeaure.persist(af)
+        return res
     
     def provideFromCache(self,eid,load=False):
         if not self.isCached() and load:
@@ -121,6 +141,8 @@ class ArticleFeatureProvider(Provider):
             feature.append(list(map(lambda x:x[1],doc)))
         if len(feature)==0:
             feature=None
+        elif self.isUpdate():
+            DBUtil.dumpArticleFeature(feature)
         self.setCache(feature)
         return feature
     
@@ -156,7 +178,10 @@ class UserInterestProvider(Provider):
         for articleId in clicked:
             vec+=np.array(self.articleFeatureProvider.provide(articleId))
         vec/=len(clicked)
-        return list(vec)
+        res=list(vec)
+        if self.isUpdate():
+            UserFeature.persist(UserFeature(eid=uid,interest=res))
+        return res
     
     def provideAllFromDB(self):
         interest=[]
@@ -181,6 +206,8 @@ class UserInterestProvider(Provider):
             interest.append(list(vec))
         if len(interest)>0:
             self.setCache(interest)
+            if self.isUpdate():
+                DBUtil.dumpInterest(interest)
             return interest
         else:
             return None
@@ -223,7 +250,10 @@ class UserFriendProvider(Provider):
         return friend
     
     def provideFromCompute(self,uid):
-        return self.trainer.train()
+        res=self.trainer.train()
+        if self.isUpdate() and res:
+            DBUtil.dumpFriendsForUser(uid, res)
+        return res
     
     def provideAllFromCache(self):
         if not self.isCached():
@@ -245,6 +275,8 @@ class UserFriendProvider(Provider):
         if self.trainer:
             friends=self.trainer.trainAll()
             self.setCache(friends)
+        if self.isUpdate() and friends:
+            DBUtil.dumpFriends(friends)
         return friends
     
     def simmilarity(self,userId,targetId):
