@@ -344,6 +344,6 @@ class ProviderFactory:
             elif featureCategory==UFCategory.RECOMMEND:
                 return RecommendProvider()
             else:
-                return None
+                return Provider()
         else:
-            return None
+            return Provider()

@@ -8,10 +8,12 @@ from sklearn.neighbors.unsupervised import NearestNeighbors
 from faulthandler import disable
 from utils.CacheUtil import CacheUtil
 from utils.DBUtil import DBUtil
+from enum import Enum
 class Trainer(object):
 
-    def __init__(self, provider=None):
+    def __init__(self, num,provider=None):
         self.autoUpdate=False
+        self.num=num
         self.provider=provider
     
     def train(self,userId):
@@ -37,25 +39,25 @@ class FriendTrainer(Trainer):
     @summary: 计算与用户相似的用户，为基于用户的协同过滤算法做准备
     '''
     
-    def __init__(self,friendNum=5,provider=None):
-        super.__init__(provider)
-        self.friendNum=friendNum
+    def __init__(self,num=5,provider=None):
+        super.__init__(num,provider)
+        self.num=num
         self.provider=provider if provider else UserInterestProvider()
         self.model=None
         
-    def config(self,friendNum=None,category=None):
+    def config(self,num=None,category=None):
         del self.model
-        self.friendNum=friendNum if friendNum else self.friendNum
+        self.num=num if num else self.num
         self.provider=ProviderFactory.getProvider(featureCategory=category) if category else self.provider
     
     def train(self, userId):
         if not self.model:
-            self.model=NearestNeighbors(n_neighbors=self.friendNum+1).fit(self.provider.provideAll())
+            self.model=NearestNeighbors(n_neighbors=self.num+1).fit(self.provider.provideAll())
         distance,indexs=self.model.kneighbors([self.provider.provide(userId)])
         similarity=self.distanceToSimilarity(distance[0][1:])
         neighborList=list(map(lambda x:CacheUtil.indexToUser(x),indexs))
         res=[]
-        for i in range(self.friendNum):
+        for i in range(self.num):
             res.append((neighborList[i],similarity[i]))
         if self.autoUpdate:
             DBUtil.dumpFriendsForUser(userId, res)
@@ -63,7 +65,7 @@ class FriendTrainer(Trainer):
         
     def trainAll(self):
         if not self.model:
-            self.model=NearestNeighbors(n_neighbors=self.friendNum+1,algorithm='auto').fit(self.provider.provideAll())
+            self.model=NearestNeighbors(n_neighbors=self.num+1,algorithm='auto').fit(self.provider.provideAll())
         res={}
         distances,indexs=self.model.kneighbors(self.provider.provideAll())
         for count in range(len(indexs)):
@@ -71,7 +73,7 @@ class FriendTrainer(Trainer):
             similarity=self.distanceToSimilarity(distances[count])
             neighborList= list(map(lambda x:CacheUtil.indexToUser(x),indexs[count]))
             res[uid]=[]
-            for i in range(self.friendNum):
+            for i in range(self.num):
                 res[uid].append((neighborList[i],similarity[i]))
         if self.isUpdate():
             DBUtil.dumpFriends(res)
@@ -82,7 +84,10 @@ class FriendTrainer(Trainer):
     
     def distanceToSimilarity(self,distance):
         return list(map(lambda x:1.0/(x+1),distance))
-   
+
+class TrainerCategory(Enum):
+    FRIEND="friend"
+  
 class TrainerFactory(object):
     
     @staticmethod

@@ -9,12 +9,12 @@ import jieba.analyse
 from model.Entity import *
 
 class ExMode(Enum):
-    EXACT=1
-    CUTALL=2
-    TFIDF=3
-    TEXTRANK=4
-    HMM=5
-    SEARCH=6
+    EXACT="exact"
+    CUTALL="cutall"
+    TFIDF="tfidf"
+    TEXTRANK="textrank"
+    HMM="hmm"
+    SEARCH="search"
 
 class WordExtractor:
     def __init__(self,userDict=None,conf={}):

@@ -26,8 +26,8 @@ class Recommender:
     
 class BaseRecommender(Recommender):
     
-    def __init__(self,topK=3,provider=None):
-        super.__init__(provider)
+    def __init__(self,topK=3,predictor=None):
+        super.__init__(predictor)
         self.topK=topK
         
     def recommend(self, uid):
