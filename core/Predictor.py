@@ -91,7 +91,7 @@ class FriendPredictor(Predictor):
         score={}
         for pair in self.getParam(userId):
             for aid in Record.getArticleForUser(pair[0]):
-                if not score.has_key(aid):
+                if not aid in score:
                     score[aid]=0
                 score+=pair[1]
         return FormatUtil.dict2tuple(score)

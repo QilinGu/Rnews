@@ -239,7 +239,7 @@ class UserFriendProvider(Provider):
         if not self.isCached() and load:
             self.setCache(CacheUtil.loadUserFriends())
         if self.isCached():
-            if self.cache.has_key(uid):
+            if uid in self.cache:
                 return self.cache[uid]
         return None
     
@@ -264,7 +264,7 @@ class UserFriendProvider(Provider):
         friends={}
         for relation in FriendRelation.objects:
             uid=relation.userId
-            if not friends.has_key(uid):
+            if not uid in friends:
                 friends[uid]=[]
             friends[uid].append((relation.targetId,relation.similarity))
         self.setCache(friends)

@@ -2,6 +2,7 @@
 .project
 .metadata
 .DS_Store
+.idea/
 data/
 logs/
 bin/**

@@ -1,0 +1,7 @@
+[
+  {
+    "script":"bin/splitWord.py",
+    "options":["-n 20"],
+    "arguments":[]
+  }
+]

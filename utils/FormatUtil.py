@@ -9,12 +9,15 @@ class FormatUtil(object):
    
     @staticmethod
     def transferDate(dateStr):
-        year=int(dateStr[0:4])
-        month=int(dateStr[5:7])
-        day=int(dateStr[8:10])
-        hour=int(dateStr[11:-2].split(':')[0])
-        minute=int(dateStr[11:-2].split(':')[1])
-        return datetime(year,month,day,hour,minute)
+        try:
+            year=int(dateStr[0:4])
+            month=int(dateStr[5:7])
+            day=int(dateStr[8:10])
+            hour=int(dateStr[11:-2].split(':')[0])
+            minute=int(dateStr[11:-2].split(':')[1])
+            return datetime(year,month,day,hour,minute)
+        except Exception as ex:
+            return None
     
     @staticmethod
     def tuple2dict(vec):

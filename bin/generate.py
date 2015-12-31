@@ -5,6 +5,7 @@ Created on 2015年12月10日
 @author: suemi
 '''
 import sys,os
+sys.path.append(".")
 from optparse import OptionParser
 from utils.CorpusHandler import TopicMethod, CorpusHandler
 from core.Provider import Category, UFCategory, ProviderFactory

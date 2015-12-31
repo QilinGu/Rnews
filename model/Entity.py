@@ -104,7 +104,7 @@ class Record(Document):
 class Article(Document,BaseEntity):
     eid=StringField(max_length=20,requied=True)
     index=LongField()
-    title=StringField(max_length=20,default=None)
+    title=StringField(default=None)
     content=StringField(default=None)
     publistDate=DateTimeField(default=None)
     

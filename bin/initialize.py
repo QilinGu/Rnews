@@ -5,8 +5,10 @@ Created on 2015年12月10日
 @author: suemi
 '''
 import sys,os
+sys.path.append(".")
 from optparse import OptionParser
 from utils.DBUtil import DBUtil
+
 
 option_0 = { 'name' : ('-s', '--start'), 'help' : '选择处理的起始位置', 'nargs' : 1 }
 option_1 = { 'name' : ('-e','--end'), 'help' : '选择处理的结束位置', 'nargs' : 1 }

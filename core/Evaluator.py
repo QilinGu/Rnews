@@ -9,6 +9,7 @@ from utils.CacheUtil import CacheUtil
 from sklearn.metrics import hamming_loss
 
 class Evaluator(object):
+    
     def __init__(self, provider=None):
         '''
         Constructor

@@ -43,10 +43,12 @@ class DBUtil:
             article.content=tmp[4]
             article.publistDate=FormatUtil.transferDate(tmp[-1])
             article.index=article_count
+            print(article.eid)
             if Article.insert(article):
                 article_count+=1
             count+=1
             del user,record,article
+            line=src.readline()
             
     @staticmethod
     def dumpArticleFeature(feature):

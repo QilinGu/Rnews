@@ -6,6 +6,7 @@ Created on 2015年12月10日
 '''
 
 import sys,os
+sys.path.append(".")
 from optparse import OptionParser
 from core.Trainer import TrainerCategory, TrainerFactory
 

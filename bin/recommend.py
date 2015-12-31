@@ -5,10 +5,12 @@ Created on 2015年12月10日
 @author: suemi
 '''
 import sys,os
+sys.path.append(".")
 from optparse import OptionParser
 from core.Recommender import BaseRecommender
 from core.Predictor import PredictorCategory
 from utils.DBUtil import DBUtil
+
 
 option_0 = { 'name' : ('-m', '--method'), 'help' : '请选择推荐使用的算法', 'nargs' : 1 }
 option_1 = { 'name' : ('-n', '--num'), 'help' : '给用户推荐的新闻数目', 'nargs' : 1 }

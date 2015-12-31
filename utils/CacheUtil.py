@@ -11,12 +11,12 @@ from model.Entity import *
 class CacheUtil:
     path={}
     path["data"]="/Volumes/MAC/Rnews/data/"
-    path["dictionary"]=CacheUtil.path["data"]+"rnews.dict"
-    path["corpus"]=CacheUtil.path["data"]+"corpus.mm"
-    path["topic"]=CacheUtil.path["data"]+"topic.mm"
-    path["articleFeature"]=CacheUtil.path["data"]+"articleFeature.pk"
-    path["userInterest"]=CacheUtil.path["data"]+"userInterest.pk"
-    path["userFriends"]=CacheUtil.path["data"]+"userFriends.pk"
+    path["dictionary"]=path["data"]+"rnews.dict"
+    path["corpus"]=path["data"]+"corpus.mm"
+    path["topic"]=path["data"]+"topic.mm"
+    path["articleFeature"]=path["data"]+"articleFeature.pk"
+    path["userInterest"]=path["data"]+"userInterest.pk"
+    path["userFriends"]=path["data"]+"userFriends.pk"
     UserToClicked=None
     ArticleToClicked=None
     userToIndex=None

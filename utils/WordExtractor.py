@@ -19,17 +19,18 @@ class ExMode(Enum):
 class WordExtractor:
     def __init__(self,userDict=None,conf={}):
         self.userDict=userDict
+        self.conf={}
         self.configFromDict(conf)
         if self.userDict:
             jieba.load_userdict(userDict)
         self.configDefault()
     
     def configDefault(self):
-        self.conf["mode"]=ExMode.TFIDF if not self.conf.has_key("mode") else self.conf["mode"]
-        self.conf["topK"]=20 if not self.conf.has_key("topK") else self.conf["topK"]
-        self.conf["withWeight"]=False if not self.conf.has_key("withWeight") else self.conf["withWeight"]
-        self.conf["threshold"]=None if not self.conf.has_key("threshold") else self.conf["threshold"]
-        if not self.conf.has_key("allowPOS"):
+        self.conf["mode"]=ExMode.TFIDF if not "mode" in self.conf else self.conf["mode"]
+        self.conf["topK"]=20 if not "topK" in self.conf else self.conf["topK"]
+        self.conf["withWeight"]=False if not "withWeight" in self.conf else self.conf["withWeight"]
+        self.conf["threshold"]=None if not "threshold" in self.conf else self.conf["threshold"]
+        if not "allowPOS" in self.conf:
             if self.conf["mode"] == ExMode.TFIDF:
                 self.conf["allowPOS"]=()
             elif self.conf["mode"]==ExMode.TEXTRANK:
