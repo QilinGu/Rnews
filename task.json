@@ -1,7 +1,32 @@
 [
   {
-    "script":"bin/splitWord.py",
-    "options":["-n 20"],
+    "script":"bin/splitWord",
+    "options":[],
+    "arguments":[]
+  },
+  {
+    "script":"bin/generate.py",
+    "options":["-o article","-m LDA","-n 10"],
+    "arguments":[]
+  },
+  {
+    "script":"bin/generate.py",
+    "options":["-o user","-m interest"],
+    "arguments":[]
+  },
+  {
+    "script":"bin/train.py",
+    "options":["-m friend","-n 10"],
+    "arguments":[]
+  },
+  {
+    "script":"bin/recommend.py",
+    "options":["-m ucf"],
+    "arguments":[]
+  },
+  {
+    "script":"bin/evaluate.py",
+    "options":[],
     "arguments":[]
   }
 ]

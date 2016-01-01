@@ -3,10 +3,14 @@ Created on 2015年12月9日
 @summary: 根据模型预测某用户对某新闻的感兴趣程度得分
 @author: suemi
 '''
-from core.Provider import UserInterestProvider, ArticleFeatureProvider,\
-    UserFriendProvider
+import time
+
+from core.Provider import UserInterestProvider, ArticleFeatureProvider
 from enum import Enum
+
+from core.Trainer import UserFriendProvider
 from model.Entity import *
+from utils.CacheUtil import CacheUtil
 from utils.FormatUtil import FormatUtil
 from sklearn.neighbors.unsupervised import NearestNeighbors
 import numpy as np
@@ -53,15 +57,13 @@ class SimPredictor(Predictor):
         uf=np.array(self.getParam(userId))
         return np.dot(af,uf)/(np.sqrt(np.dot(uf,uf))*np.sqrt(np.dot(af,af)))
     
-    def predictAll(self, userId):
+    def predictAll(self, userIndex):
         if not self.model:
             self.model=NearestNeighbors(n_neighbors=self.maxNum,algorithm='auto').fit(self.afProvider.provideAll())
-        distance,indexs=self.kneighbors([self.getParam(userId)])
-       # similarity=map(lambda x:1/(x+1),distance[0])
-       # articles=map(lambda x:Article.objects[x].eid,indexs)
+        distance,candidates=self.model.kneighbors([self.getParam(userIndex)])
         res=[]
         for i in range(self.maxNum):
-            res.append((Article.objects[indexs[0][i]].eid,1/(distance[0][i]+1)))
+            res.append((candidates[0][i],1-distance[0][i]))
         return res
     
     def clear(self):
@@ -74,8 +76,9 @@ class FriendPredictor(Predictor):
     '''
     
     def __init__(self,provider=None):
-        provider=provider if provider else UserFriendProvider()
-        super.__init__(provider)
+        super().__init__()
+        self.ufProvider=provider if provider else UserFriendProvider()
+        self.ufProvider.provideAll()
     
     def config(self,provider):
         self.ufProvider=provider if provider else self.ufProvider
@@ -87,13 +90,14 @@ class FriendPredictor(Predictor):
             score+=self.ufProvider.similarity(userId,uid)
         return score
         
-    def predictAll(self, userId):
+    def predictAll(self, userIndex):
+
         score={}
-        for pair in self.getParam(userId):
-            for aid in Record.getArticleForUser(pair[0]):
+        for pair in self.ufProvider.provide(userIndex):
+            for aid in CacheUtil.loadClickedForUser(pair[0]):
                 if not aid in score:
                     score[aid]=0
-                score+=pair[1]
+                score[aid]+=pair[1]
         return FormatUtil.dict2tuple(score)
 
 class PredictorCategory(Enum):

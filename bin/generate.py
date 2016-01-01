@@ -25,11 +25,10 @@ def main(options,arguments):
         hanler.process(method,num)
     elif operation==Category.USER:
         method=UFCategory.INTEREST if not options.method else UFCategory(options.method)
-        provider=ProviderFactory.getProvider(operation, method)
+        provider=ProviderFactory.getProvider(method,operation)
         provider.onUpdate()
         provider.provideAllFromCompute()
-            
-        
+
         
 if __name__=='__main__':
     parser=OptionParser()

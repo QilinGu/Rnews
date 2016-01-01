@@ -3,6 +3,10 @@ Created on 2015年12月8日
 @summary: 对算法的效果进行计算评估
 @author: suemi
 '''
+from enum import Enum
+
+import time
+
 from core.Provider import RecommendProvider
 from model.Entity import *
 from utils.CacheUtil import CacheUtil
@@ -42,12 +46,30 @@ class Evaluator(object):
 
 
 class BaseEvaluator(Evaluator):
+
+    def __init__(self):
+        super().__init__()
+        self.success=None
     
     def intersection(self):
+        if self.success:
+            return self.success
         success=0
-        for rec in Recommendation.objects.no_cache():
-            if Record.isClicked(rec.userId, rec.articleId):
-                success+=1
+        if Recommendation.objects.count()<Record.objects(isTrain=False).count():
+            for rec in Recommendation.objects:
+                # start=time.time()
+                if Record.isClickedForTest(rec.userIndex, rec.articleIndex):
+                    success+=1
+                # end=time.time()
+                # print(end-start)
+        else:
+            for rec in Record.objects(isTrain=False):
+                # start=time.time()
+                if Recommendation.isRecommended(rec.userIndex, rec.articleIndex):
+                    success+=1
+                # end=time.time()
+                # print(end-start)
+        self.success=success
         return success
     
     def precision(self):
@@ -57,7 +79,7 @@ class BaseEvaluator(Evaluator):
         return self.intersection()*1.0/Record.objects(isTrain=False).count()
     
     def coverage(self):
-        recArticles=list(map(lambda x:x.articleId),Recommendation.objects.only("articleId"))
+        recArticles=list(map(lambda x:x.articleIndex),Recommendation.objects.only("articleIndex"))
         return len(set(recArticles))*1.0/Article.objects.count()
     
     def diversity(self):
@@ -70,6 +92,11 @@ class BaseEvaluator(Evaluator):
         return 2*distance/(count*(count-1))
                 
         
-    
+class Metric(Enum):
+    PRECISION="precision"
+    RECALL="recall"
+    DIVERSITY="diversity"
+    COVERAGE="coverage"
+    ALL="all"
     
                 

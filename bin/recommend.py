@@ -5,9 +5,15 @@ Created on 2015年12月10日
 @author: suemi
 '''
 import sys,os
+
 sys.path.append(".")
+from core.Recommender import RecommenderCategory, RecommenderFactory
+
+
+from utils.CacheUtil import CacheUtil
+
+
 from optparse import OptionParser
-from core.Recommender import BaseRecommender
 from core.Predictor import PredictorCategory
 from utils.DBUtil import DBUtil
 
@@ -17,11 +23,12 @@ option_1 = { 'name' : ('-n', '--num'), 'help' : '给用户推荐的新闻数目'
 options=[option_0,option_1]
 
 def main(options,arguments):
-    method=PredictorCategory(options.method) if options.method else PredictorCategory.SIM
-    topK=int(options.num) if options.num else 3
-    recommender=BaseRecommender(topK=topK)
-    recommender.select(method)
+    method=RecommenderCategory(options.method) if options.method else RecommenderCategory.CONTENT
+    topK=int(options.num) if options.num else 5
+    recommender=RecommenderFactory.getRecommender(method)
+    recommender.topK=topK
     recommendation=recommender.recommendAll()
+    CacheUtil.dumpRecommendation(recommendation)
     DBUtil.dumpRecommendation(recommendation)
         
     

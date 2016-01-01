@@ -96,11 +96,11 @@ class WordExtractor:
         return words
     
     def process(self):
-        for article in Article.objects.no_cache():
+        for article in Article.objects:
             try:
                 words=self.extract(article.content)
-                wordBag=WordBag(eid=article.eid,wordList=words)
-                WordBag.persist(wordBag)
+                article.wordList=words
+                article.save()
             except Exception as e:
                 print(e.message)
                 continue

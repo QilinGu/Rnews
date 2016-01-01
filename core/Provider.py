@@ -3,11 +3,12 @@ Created on 2015年12月8日
 @summary: 进一步提取用户和新闻的特征
 @author: suemi
 '''
+from email._header_value_parser import Word
+
 from model.Entity import *
 from enum import Enum
 from utils.CacheUtil import CacheUtil
 import numpy as np
-from core.Trainer import FriendTrainer
 from utils.DBUtil import DBUtil
 class Provider:
     
@@ -15,13 +16,13 @@ class Provider:
         self.cache=None
         self.autoUpdate=False
     
-    def provideFromCache(self,eid,load=False):
+    def provideFromCache(self,index,load=False):
         return None
     
-    def provideFromDB(self,eid):
+    def provideFromDB(self,index):
         return None
     
-    def provideFromCompute(self,eid):
+    def provideFromCompute(self,index):
         return None
     
     def provideAllFromDB(self):
@@ -33,15 +34,15 @@ class Provider:
     def provideAllFromCompute(self):
         return None
       
-    def provide(self,eid):
+    def provide(self,index):
         '''
         @summary: 为单个对象提供特征向量
         '''
-        res=self.provideFromCache(eid,False)
+        res=self.provideFromCache(index,True)
         if not res:
-            res=self.provideFromDB(eid)
+            res=self.provideFromDB(index)
         if not res:
-            res=self.provideFromCompute(eid)
+            res=self.provideFromCompute(index)
         return res
     
     def provideAll(self):
@@ -91,39 +92,36 @@ class ArticleFeatureProvider(Provider):
     '''
     
     def __init__(self,corpus=None):
-        super.__init__()
+        super().__init__()
         self.corpus=corpus
         
     def setCorpus(self,corpus):
         self.corpus=corpus
     
-    def provideFromDB(self,articleId):
-        return ArticleFeaure.loadField("topicVector")
+    def provideFromDB(self,articleIndex):
+        return Article.loadField(articleIndex,"topicVector")
     
-    def provideFromCompute(self,eid):
+    def provideFromCompute(self,index):
         if not self.corpus:
             return None
-        index=Article.loadField(eid,"index")
+
         res=list(map(lambda x:x[1],self.corpus[index]))
         if self.isUpdate():
-            af=ArticleFeaure()
-            af.eid=eid
-            af.topicVector=res
-            ArticleFeaure.persist(af)
+            article=Article.objects[index]
+            article.topicVector=res
+            article.save()
         return res
-    
-    def provideFromCache(self,eid,load=False):
+
+    def provideFromCache(self,index,load=False):
         if not self.isCached() and load:
             self.setCache(CacheUtil.loadArticleFeature())
         if not self.isCached():
             return None
-        index=Article.loadField(eid,"index")
+        index=Article.loadField(index,"index")
         return self.cache[index]
     
     def provideAllFromDB(self):
-        feature=[]
-        for item in ArticleFeaure.objects.no_cache():
-            feature.append(item.topicVector)
+        feature=list(map(lambda x:x.topicVector,Article.objects.only("topicVector")))
         if len(feature)>0:
             self.setCache(feature)
             return feature
@@ -133,7 +131,11 @@ class ArticleFeatureProvider(Provider):
     def provideAllFromCache(self):
         if not self.isCached():
             self.setCache(CacheUtil.loadArticleFeature())
-        return self.cache
+        if len(self.cache)>0:
+            return self.cache
+        else:
+            self.cache=None
+            return None
     
     def provideAllFromCompute(self):
         feature=[]
@@ -153,14 +155,14 @@ class UserInterestProvider(Provider):
     '''
     
     def __init__(self,articleFeatureProvider=None):
-        super.__init__()
+        super().__init__()
         if articleFeatureProvider:
             self.articleFeatureProvider=articleFeatureProvider
         else:
             self.articleFeatureProvider=ArticleFeatureProvider()
-        self.interestNum=len(self.articleFeatureProvider.provide(Article.objects[0].eid))
-    def provideFromDB(self,uid):
-        return UserFeature.loadField(uid,"interest")
+        self.interestNum=len(self.articleFeatureProvider.provide(0))
+    def provideFromDB(self,index):
+        return User.loadField(index,"interest")
     
     def provideFromCache(self,uid,load=False):
         if not self.isCached() and load:
@@ -170,23 +172,21 @@ class UserInterestProvider(Provider):
         index=User.loadField(uid,"index")
         return self.cache[index]
     
-    def provideFromCompute(self,uid):
-        user=User()
-        user.eid=uid
+    def provideFromCompute(self,index):
+        user=User.objects[index]
         clicked=user.getAllClicked()
         vec=np.array([0.0]*self.interestNum)
-        for articleId in clicked:
-            vec+=np.array(self.articleFeatureProvider.provide(articleId))
+        for articleIndex in clicked:
+            vec+=np.array(self.articleFeatureProvider.provide(articleIndex))
         vec/=len(clicked)
         res=list(vec)
         if self.isUpdate():
-            UserFeature.persist(UserFeature(eid=uid,interest=res))
+            user.interest=res
+            user.save()
         return res
     
     def provideAllFromDB(self):
-        interest=[]
-        for item in UserFeature.objects.no_cache():
-            interest.append(item.interest)
+        interest=list(map(lambda x:x.interest,User.objects.only("interest")))
         if len(interest)>0:
             self.setCache(interest)
             return interest
@@ -197,16 +197,21 @@ class UserInterestProvider(Provider):
         if not self.articleFeatureProvider:
             return None
         interest=[]
-        for user in User.objects.no_cache():
-            clicked=user.getAllClicked() 
+        feature=self.articleFeatureProvider.provideAll()
+        for user in User.objects:
+            clicked=user.getAllClicked()
             vec=np.array([0.0]*self.interestNum)
-            for articleId in clicked:
-                vec+=np.array(self.articleFeatureProvider.provide(articleId))
+            for i in clicked:
+                tmp=np.array(feature[i])
+                vec=vec+tmp
             vec/=len(clicked)
             interest.append(list(vec))
+            # print(vec)
+            print("User "+str(user.index)+" has computed!")
         if len(interest)>0:
             self.setCache(interest)
             if self.isUpdate():
+                CacheUtil.dumpUserInterest(interest)
                 DBUtil.dumpInterest(interest)
             return interest
         else:
@@ -227,88 +232,25 @@ class UserParamProvider(Provider):
     pass
 
 
-class UserFriendProvider(Provider):
-    '''
-    @summary: 取与用户相似的用户以进行基于用户的协同过滤
-    '''
-    def __init__(self,trainer=None):
-        super.__init__()
-        self.trainer=trainer if trainer else FriendTrainer()
-        
-    def provideFromCache(self,uid,load=False):
-        if not self.isCached() and load:
-            self.setCache(CacheUtil.loadUserFriends())
-        if self.isCached():
-            if uid in self.cache:
-                return self.cache[uid]
-        return None
-    
-    def provideFromDB(self,uid):
-        friend=[]
-        for relation in FriendRelation.objects(userId=uid):
-            friend.append((relation.targetId,relation.similarity))
-        return friend
-    
-    def provideFromCompute(self,uid):
-        res=self.trainer.train()
-        if self.isUpdate() and res:
-            DBUtil.dumpFriendsForUser(uid, res)
-        return res
-    
-    def provideAllFromCache(self):
-        if not self.isCached():
-            self.setCache(CacheUtil.loadUserFriends())
-        return self.cache
-    
-    def provideAllFromDB(self):
-        friends={}
-        for relation in FriendRelation.objects:
-            uid=relation.userId
-            if not uid in friends:
-                friends[uid]=[]
-            friends[uid].append((relation.targetId,relation.similarity))
-        self.setCache(friends)
-        return friends
-    
-    def provideAllFromCompute(self):
-        friends=None
-        if self.trainer:
-            friends=self.trainer.trainAll()
-            self.setCache(friends)
-        if self.isUpdate() and friends:
-            DBUtil.dumpFriends(friends)
-        return friends
-    
-    def simmilarity(self,userId,targetId):
-        relations=FriendRelation.objects(userId=userId,targetId=targetId).only("similarity")
-        return 0 if len(relations)==0 else relations[0].similarity
-            
+
     
 
 class RecommendProvider(Provider):
     '''
     @summary: 提供推荐结果，供Evaluator分析使用
     '''
-    def provideFromDB(self,eid):
-        res=list(map(lambda x:(x.articleId,x.score),Recommendation.objects(userId=eid)))
-        return res if len(res)>0 else None
+    def provideFromDB(self,index):
+        res=list(map(lambda x:(x.articleIndex,x.score),Recommendation.objects[index]))
+        return res
     
     def provideAllFromDB(self):
         res=[]
-        for user in User.objects.no_cache():
-            tmp=self.provideFromDB(user.eid)
+        for user in User.objects:
+            tmp=self.provideFromDB(user.index)
             res.append(tmp if tmp else [])
-        if len(res)==0:
-            res=None
         self.setCache(res) 
         return res
-    
-    def provideIndexMatrix(self):
-        res=[]
-        for user in User.objects:
-            tmp=list(map(lambda x:CacheUtil.articleToIndex(x.articleId),Recommendation.objects(userId=user.eid)))
-            res.append(tmp)
-        return res
+
   
 class AFCategory(Enum):
     TOPIC="topic"
@@ -339,8 +281,6 @@ class ProviderFactory:
                 return UserInterestProvider()
             elif featureCategory==UFCategory.PARAM:
                 return UserParamProvider()
-            elif featureCategory==UFCategory.FRIEND:
-                return UserFriendProvider()
             elif featureCategory==UFCategory.RECOMMEND:
                 return RecommendProvider()
             else:

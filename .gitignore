@@ -1,11 +1,11 @@
 *.pydevproject
+*.iml
 .project
 .metadata
 .DS_Store
 .idea/
 data/
 logs/
-bin/**
 tmp/**
 tmp/**/*
 *.tmp

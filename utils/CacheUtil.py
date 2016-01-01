@@ -3,11 +3,14 @@ Created on 2015年12月5日
 @summary: 对算法运行中的一些中间文件进行管理
 @author: suemi
 '''
-from utils.CorpusHandler import CorpusMode, TopicMethod
+import os,sys
 from gensim import corpora
 import pickle as pk
-import os
+
+from scipy.sparse import lil_matrix
+
 from model.Entity import *
+
 class CacheUtil:
     path={}
     path["data"]="/Volumes/MAC/Rnews/data/"
@@ -17,12 +20,18 @@ class CacheUtil:
     path["articleFeature"]=path["data"]+"articleFeature.pk"
     path["userInterest"]=path["data"]+"userInterest.pk"
     path["userFriends"]=path["data"]+"userFriends.pk"
-    UserToClicked=None
-    ArticleToClicked=None
-    userToIndex=None
-    indexToUser=None
-    articleToIndex=None
-    
+    path["recommendation"]=path["data"]+"recommendation.pk"
+    path["userIds"]=path["data"]+"userIds.pk"
+    path["articleIds"]=path["data"]+"articleIds.pk"
+    path["record"]=path["data"]+"record.pk"
+    path["userClicked"]=path["data"]+"userClick.pk"
+    path["articleClicked"]=path["data"]+"articleClick.pk"
+    userIds=None
+    articleIds=None
+    record=None
+    userClicked=None
+    articleClicked=None
+
     @staticmethod
     def clear():
         pass
@@ -32,105 +41,112 @@ class CacheUtil:
         return corpora.dictionary.Dictionary.load(CacheUtil.path["dictionary"])
     
     @staticmethod
-    def loadCorpus(mode=CorpusMode.Mm):
-        corpus=None
-        CacheUtil.path["corpus"]=CacheUtil.path["data"]+"corpus."+mode
-        if mode==CorpusMode.Mm:
-            corpus=corpora.MmCorpus(CacheUtil.path["corpus"])
-        elif mode==CorpusMode.Blei:
-            corpus=corpora.BleiCorpus(CacheUtil.path["corpus"])
-        elif mode==CorpusMode.Low:
-            corpus=corpora.LowCorpus(CacheUtil.path["corpus"])
-        elif mode==CorpusMode.SVMLight:
-            corpus=corpora.SvmLightCorpus(CacheUtil.path["corpus"])
-        return corpus
-    
-    @staticmethod
     def dumpDictionary(dictionary):
         dictionary.save(CacheUtil.dictionaryPath)
     
     @staticmethod
-    def dumpCorpus(corpus,mode=CorpusMode.Mm):
-        CacheUtil.path["corpus"]=CacheUtil.path["data"]+"corpus."+mode
-        if mode==CorpusMode.Mm:
-            corpora.MmCorpus.serialize(CacheUtil.path["corpus"],corpus)
-        elif mode==CorpusMode.Blei:
-           corpora.BleiCorpus.serialize(CacheUtil.path["corpus"],corpus)
-        elif mode==CorpusMode.Low:
-           corpora.LowCorpus.serialize(CacheUtil.path["corpus"],corpus)
-        elif mode==CorpusMode.SVMLight:
-            corpora.SvmLightCorpus.serialize(CacheUtil.path["corpus"],corpus)
-        
-    
-    @staticmethod
-    def dumpTopic(corpus,method=TopicMethod.LDA):
-        CacheUtil.path["topic"]=CacheUtil.path["data"]+method+".mm"
-        corpora.MmCorpus.serialize(CacheUtil.path["topic"],corpus)
-        
-    @staticmethod
-    def loadTopic(method=TopicMethod.LDA):
-        CacheUtil.path["topic"]=CacheUtil.path["data"]+method+".mm"
-        return corpora.MmCorpus(CacheUtil.path["topic"])
-    
-    @staticmethod
     def dumpArticleFeature(feature):
-        pk.dump(feature,open(CacheUtil.path["articleFeature"],'w'))
+        pk.dump(feature,open(CacheUtil.path["articleFeature"],'wb'))
         
     @staticmethod
     def loadArticleFeature():
         if not os.path.exists(CacheUtil.path["articleFeature"]):
             return None
-        pk.load(open(CacheUtil.path["articleFeature"],'r'))
+        return pk.load(open(CacheUtil.path["articleFeature"],'rb'))
         
     @staticmethod
     def dumpUserInterest(interest):
-        pk.dump(interest,open(CacheUtil.path["userInterest"],'w'))
+        pk.dump(interest,open(CacheUtil.path["userInterest"],'wb'))
         
     @staticmethod
     def loadUserInterest():
         if not os.path.exists(CacheUtil.path["userInterest"]):
             return None
-        pk.load(open(CacheUtil.path["userInterest"],'r'))
+        return pk.load(open(CacheUtil.path["userInterest"],'rb'))
     
     @staticmethod
     def dumpUserFriends(friends):
-        pk.dump(friends,open(CacheUtil.path["userFriends"],'w'))
+        pk.dump(friends,open(CacheUtil.path["userFriends"],'wb'))
         
     @staticmethod
     def loadUserFriends():
         if not os.path.exists(CacheUtil.path["userFriends"]):
             return None
-        pk.load(open(CacheUtil.path["userFriends"],'r'))
-       
+        return pk.load(open(CacheUtil.path["userFriends"],'rb'))
+
     @staticmethod
-    def getUserToClicked():
-        pass
+    def dumpRecommendation(recommendation):
+        res={}
+        for i in range(len(recommendation)):
+            print(recommendation[i])
+            tmp=list(map(lambda x:CacheUtil.loadArticleId(x[0]),recommendation[i]))
+            res[CacheUtil.loadUserId(i)]=tmp
+        pk.dump(res,open(CacheUtil.path["recommendation"],'wb'))
+
+
+    @staticmethod
+    def loadRecommendation():
+        return pk.load(open(CacheUtil.path["recommendation"],'rb'))
+
+    @staticmethod
+    def loadUserId(index):
+        if not CacheUtil.userIds:
+            if  os.path.exists(CacheUtil.path["userIds"]):
+                CacheUtil.userIds=pk.load(open(CacheUtil.path["userIds"],"rb"))
+            else:
+                CacheUtil.userIds=list(map(lambda x:x.eid,User.objects.only("eid")))
+                pk.dump(CacheUtil.userIds,open(CacheUtil.path["userIds"],"wb"))
+        return CacheUtil.userIds[index]
+
+    @staticmethod
+    def loadArticleId(index):
+        if not CacheUtil.articleIds:
+            if  os.path.exists(CacheUtil.path["articleIds"]):
+                CacheUtil.articleIds=pk.load(open(CacheUtil.path["articleIds"],"rb"))
+            else:
+                CacheUtil.articleIds=list(map(lambda x:x.eid,Article.objects.only("eid")))
+                pk.dump(CacheUtil.articleIds,open(CacheUtil.path["articleIds"],"wb"))
+        return CacheUtil.articleIds[index]
     
     @staticmethod
-    def getArticleToClicked():
-        pass
-    
+    def isClicked(userIndex,articleIndex):
+        if CacheUtil.record!=None:
+            return CacheUtil.record[userIndex,articleIndex]!=0
+        elif os.path.exists(CacheUtil.path["record"]):
+            CacheUtil.record=pk.load(open(CacheUtil.path["record"],"rb"))
+        else:
+            tmp=lil_matrix((User.objects.count(),Article.objects.count()),dtype=int)
+            for click in Record.objects(isTrain=True):
+                tmp[click.userIndex,click.articleIndex]=1
+            CacheUtil.record=tmp
+            pk.dump(tmp,open(CacheUtil.path["record"],"wb"))
+        return CacheUtil.record[userIndex,articleIndex]!=0
+
     @staticmethod
-    def getIndexForUser(uid):
-        if not CacheUtil.userToIndex:
-            tmp={}
-            for user in User.objects.no_cache():
-                tmp[user.eid]=user.index
-            CacheUtil.userToIndex=tmp
-        return CacheUtil.userToIndex[uid]
-    
+    def loadClickedForUser(index):
+        if CacheUtil.userClicked!=None:
+            return CacheUtil.userClicked[index]
+        elif os.path.exists(CacheUtil.path["userClicked"]):
+            CacheUtil.userClicked=pk.load(open(CacheUtil.path["userClicked"],"rb"))
+        else:
+            #clicked=[[]]*User.objects.count()
+            clicked=[[] for i in range(User.objects.count())]
+            for click in Record.objects:
+                clicked[click.userIndex].append(click.articleIndex)
+            CacheUtil.userClicked=clicked
+            pk.dump(clicked,open(CacheUtil.path["userClicked"],"wb"))
+        return CacheUtil.userClicked[index]
+
     @staticmethod
-    def getUidForIndex(index):
-        if not CacheUtil.indexToUser:
-            CacheUtil.indexToUser=list(map(lambda x:x.eid,User.objects))
-        return CacheUtil.indexToUser[index]
-    
-    @staticmethod
-    def getIndexForArticle(aid):
-        if not CacheUtil.articleToIndex:
-            tmp={};count=0
-            for article in Article.objects.only("eid").no_cache():
-                tmp[article.eid]=count
-                count+=1
-            CacheUtil.articleToIndex=tmp
-        return CacheUtil.articleToIndex[aid]
+    def loadClickedForArticle(index):
+        if CacheUtil.articleClicked!=None:
+            return CacheUtil.articleClicked[index]
+        elif os.path.exists(CacheUtil.path["articleClicked"]):
+            CacheUtil.articleClicked=pk.load(open(CacheUtil.path["articleClicked"],"rb"))
+        else:
+            clicked=[[] for i in range(Article.objects.count())]
+            for click in Record.objects:
+                clicked[click.articleIndex].append(click.userIndex)
+            CacheUtil.articleClicked=clicked
+            pk.dump(clicked,open(CacheUtil.path["articleClicked"],"wb"))
+        return CacheUtil.articleClicked[index]

@@ -17,7 +17,7 @@ options=[option_0,option_1]
 
 def main(options,arguments):
     method=TrainerCategory(options.method) if options.method else TrainerCategory.FRIEND
-    num=int(options.num) if options.num else 5
+    num=int(options.num) if options.num else 10
     trainer=TrainerFactory.getTrainer(method)
     trainer.config(num)
     trainer.onUpdate()

@@ -4,7 +4,7 @@ Created on 2015年12月5日
 @author: suemi
 '''
 import codecs
-
+import numpy as np
 from model.Entity import *
 from utils.FormatUtil import FormatUtil
 class DBUtil:
@@ -26,19 +26,16 @@ class DBUtil:
                 break
             tmp=line.split("\t")
             record=Record()
-            record.userId=tmp[0]
-            record.articleId=tmp[1]
             record.clickDate=tmp[2]
-            record.save()
-            
+
             user=User()
-            user.eid=record.userId
+            user.eid=tmp[0]
             user.index=user_count
             if User.insert(user):
                 user_count+=1
                 
             article=Article()
-            article.eid=record.articleId
+            article.eid=tmp[1]
             article.title=tmp[3]
             article.content=tmp[4]
             article.publistDate=FormatUtil.transferDate(tmp[-1])
@@ -46,86 +43,78 @@ class DBUtil:
             print(article.eid)
             if Article.insert(article):
                 article_count+=1
+            record.articleIndex=article.index
+            record.userIndex=user.index
+            Record.insert(record)
             count+=1
             del user,record,article
             line=src.readline()
             
     @staticmethod
     def dumpArticleFeature(feature):
-        count=0
-        for article in Article.objects.only("eid").no_cache():
-            af=ArticleFeaure()
-            af.eid=article.eid
-            af.topicVector=feature[count]
-            ArticleFeaure.persist(af)
-            count+=1
-            
+        for i in range(Article.objects.count()):
+            article=Article.objects[i]
+            article.topicVector=feature[i]
+            article.save()
+
      
     @staticmethod
-    def dumpTopic(corpus):
-        for i in range(len(corpus)):
-            doc=corpus[i]
-            vector=list(map(lambda x:x[1],doc)) 
-            feature=ArticleFeaure()
-            feature.eid= Article.objects[i].eid
-            feature.topicVector=vector
-            ArticleFeaure.persist(feature)
-            print("Topic of Article "+feature.eid+" saved successfully!")
+    def dumpTopic(corpus,topicNum):
+        i=0
+        for doc in corpus:
+            vector=[0]*topicNum
+            for pair in doc:
+                vector[pair[0]]=pair[1]
+            article=Article.objects[i]
+            article.topicVector=vector
+            article.save()
+            i+=1
     
     @staticmethod
     def dumpInterest(interests):
         for user in User.objects.no_cache():
-            uf=UserFeature()
-            uf.eid=user.eid
-            uf.interest=interests[user.index]
-            UserFeature.persist(uf)
-           
+            user.interest=interests[user.index]
+            user.save()
+
     @staticmethod
     def dumpFriends(friends):
         FriendRelation.drop_collection()
-        for key,val in friends.items():
-            for pair in val:
+        for i in range(len(friends)):
+            for pair in friends[i]:
                 relation=FriendRelation()
-                relation.userId=key
-                relation.targetId=val[0]
-                relation.similarity=val[1]
+                relation.userIndex=i
+                relation.targetIndex=pair[0]
+                relation.similarity=pair[1]
                 relation.save()
-            print("Friends of User "+key+" write successfully!")
+            print("Friends of User "+str(i)+" write successfully!")
     
-    @staticmethod
-    def dumpFriendsForUser(uid,friend):
-        relations=FriendRelation.objects(userId=uid)
-        for relation in relations:
-            relation.delete()
-        for pair in friend:
-            relation=FriendRelation()
-            relation.userId=uid
-            relation.targetId=pair[0]
-            relation.similarity=pair[1]
-            relation.save()
+
             
     @staticmethod
     def dumpRecommendation(rec):
         Recommendation.drop_collection()
-        for user in User.objects.no_cache():
-            for pair in rec[user.index]:
+        for i in range(len(rec)):
+            for pair in rec[i]:
                 recommendation=Recommendation()
-                recommendation.userId=user.eid
-                recommendation.articleId=pair[0]
+                recommendation.userIndex=i
+                recommendation.articleIndex=pair[0]
                 recommendation.score=pair[1]
                 recommendation.save()
-            print("Recommendation For User "+user.eid+" already saved!")
-    
+            print("Recommendation For User "+str(i)+" already saved!")
     
     @staticmethod
-    def dumpRecommendationForUser(uid,rec):
-        recommendations=Recommendation.objects(userId=uid)
-        for recommendation in recommendations:
-            recommendation.delete()
-        for pair in rec:
-            recommendation=Recommendation()
-            recommendation.userId=uid
-            recommendation.articleId=pair[0]
-            recommendation.score=pair[1]
-            recommendation.save()
+    def toDict():
+        res=dict.fromkeys(range(User.objects.count()))
+        for i in res.keys():
+            res[i]={}
+        for click in Record.objects(isTrain=True):
+            res[click.userIndex][click.articleIndex]=1
+        return res
+
+    @staticmethod
+    def randomSplit(ratio):
+        for click in Record.objects:
+            tmp=np.random.ranf()
+            click.isTrain=True if tmp<ratio else False
+            click.save()
             

@@ -14,36 +14,29 @@ class BaseEntity:
     '''
     
     @classmethod
-    def load(clazz,eid):
-        queryResult=clazz.objects(eid=eid)
-        return queryResult[0] if len(queryResult)>0 else None
+    def load(clazz,index):
+        return clazz.objects[index]
     
     @classmethod
-    def loadField(clazz,eid,field):
-        queryResult=clazz.objects(eid=eid).only(field)
-        return getattr(queryResult[0], field) if len(queryResult)>0 else None
-     #   return list(map(lambda x:getattr(x, field),queryResult))
+    def loadField(clazz,index,field):
+        return getattr(clazz.objects[index], field)
+
     
     @classmethod
-    def updateField(clazz,eid,field,value):
-        queryResult=clazz.objects(eid=eid)
-        obj=None
-        if len(queryResult)==0:
-            obj=clazz.new()
-            obj.eid=eid
-        else:
-            obj=queryResult[0]
+    def updateField(clazz,index,field,value):
+        obj=clazz.objects[index]
         setattr(obj, field, value)
         obj.save()
         
     
     @classmethod
     def insert(clazz,entity):
-        num=clazz.objects(eid=entity.eid).count()
-        if num==0:
+        res=clazz.objects(eid=entity.eid)
+        if len(res)==0:
             entity.save()
             return True
         else:
+            entity.index=res[0].index
             return False
     
     @classmethod
@@ -57,6 +50,7 @@ class BaseEntity:
         if len(queryResult)==0:
             entity.save()
         else:
+            entity.index=queryResult[0].index
             queryResult[0].delete()
             entity.save()
             
@@ -67,39 +61,40 @@ class BaseEntity:
             queryResult[0].delete()
 
 class Record(Document):
-    userId=StringField(max_length=20)
-    articleId=StringField(max_length=20)
+    userIndex=LongField()
+    articleIndex=LongField()
     clickDate=LongField()
     isTrain=BooleanField(default=True)
     
-    def getArticle(self):
-        queryResult=Article.objects(eid=self.articleId)
-        return queryResult[0] if len(queryResult)>0 else None
-    
-    def getUser(self):
-        queryResult=User.objects(eid=self.userId)
-        return queryResult[0] if len(queryResult)>0 else None
-    
     @staticmethod
     def insert(record):
-        num=Record.objects(userId=record.userId,articleId=record.articleId).count()
+        num=Record.objects(userIndex=record.userIndex,articleIndex=record.articleIndex).count()
         if num == 0:
             record.save()
     
     @staticmethod
-    def getUserForArticle(articleId):
-        queryResults=Record.objects(articleId=articleId,isTrain=True).only("userId")
-        return list(map(lambda x:getattr(x, "userId"),queryResults))
+    def getUserForArticle(articleIndex):
+        queryResults=Record.objects(articleIndex=articleIndex,isTrain=True).only("userIndex")
+        return list(map(lambda x:getattr(x, "userIndex"),queryResults))
     
     @staticmethod
-    def getArticleForUser(userId):
-        queryResults=Record.objects(userId=userId,isTrain=True).only("articleId")
-        return list(map(lambda x:getattr(x, "articleId"),queryResults))
+    def getArticleForUser(userIndex):
+        queryResults=Record.objects(userIndex=userIndex,isTrain=True).only("articleIndex")
+        return list(map(lambda x:getattr(x, "articleIndex"),queryResults))
         
     
     @staticmethod
-    def isClicked(userId,articleId):
-        return True if len(Record.objects(userId=userId,articleId=articleId))>0 else False
+    def isClicked(userIndex,articleIndex):
+        return True if len(Record.objects(userIndex=userIndex,articleIndex=articleIndex))>0 else False
+
+    @staticmethod
+    def isClickedForTest(userIndex,articleIndex):
+        return True if len(Record.objects(userIndex=userIndex,articleIndex=articleIndex,isTrain=False))>0 else False
+
+
+    @staticmethod
+    def isClickedForTrain(userIndex,articleIndex):
+        return True if len(Record.objects(userIndex=userIndex,articleIndex=articleIndex,isTrain=True))>0 else False
     
 class Article(Document,BaseEntity):
     eid=StringField(max_length=20,requied=True)
@@ -107,42 +102,33 @@ class Article(Document,BaseEntity):
     title=StringField(default=None)
     content=StringField(default=None)
     publistDate=DateTimeField(default=None)
-    
+    wordList=ListField(StringField())
+    topicVector=ListField(FloatField())
     
 class User(Document,BaseEntity):
     eid=StringField(max_length=20)
     index=LongField()
+    interest=ListField(FloatField())
     
     def getAllClickedFromDB(self):
-        queryResults=Record.objects(userId=self.eid,isTrain=True).only('articleId')
-        return list(map(lambda x:getattr(x,'articleId'),queryResults))
+        queryResults=Record.objects(userIndex=self.index,isTrain=True).only('articleIndex')
+        return list(map(lambda x:getattr(x,'articleIndex'),queryResults))
     
     def getAllClickedFromCache(self):
         pass
     
     def getAllClicked(self):
         return self.getAllClickedFromDB()
-    
-class WordBag(Document,BaseEntity):
-    eid=StringField(max_length=20)
-    wordList=ListField(StringField())
 
-class ArticleFeaure(Document,BaseEntity):
-    eid=StringField(max_length=20)
-    topicVector=ListField(DecimalField())
-
-class UserFeature(Document,BaseEntity):
-    eid=StringField(max_length=20)
-    interest=ListField(DecimalField())
     
 class FriendRelation(Document):
-    userId=StringField(required=True)
-    targetId=StringField(required=True)
-    similarity=DecimalField()
+    userIndex=LongField(required=True)
+    targetIndex=LongField(required=True)
+    similarity=FloatField()
     
     @staticmethod
     def persist(relation):
-        queryResult=FriendRelation.objects(userId=relation.userId,targetId=relation.targetId)
+        queryResult=FriendRelation.objects(userIndex=relation.userIndex,targetId=relation.targetId)
         if len(queryResult)==0:
             relation.save()
         else:
@@ -150,6 +136,10 @@ class FriendRelation(Document):
             relation.save()
 
 class Recommendation(Document):
-    userId=StringField()
-    articleId=StringField()
-    score=DecimalField()           
+    userIndex=LongField()
+    articleIndex=LongField()
+    score=FloatField()
+
+    @staticmethod
+    def isRecommended(userIndex,articleIndex):
+        return True if len(Recommendation.objects(userIndex=userIndex,articleIndex=articleIndex))>0 else False
