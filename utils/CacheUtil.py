@@ -131,7 +131,7 @@ class CacheUtil:
         else:
             #clicked=[[]]*User.objects.count()
             clicked=[[] for i in range(User.objects.count())]
-            for click in Record.objects:
+            for click in Record.objects(isTrain=True):
                 clicked[click.userIndex].append(click.articleIndex)
             CacheUtil.userClicked=clicked
             pk.dump(clicked,open(CacheUtil.path["userClicked"],"wb"))
@@ -145,7 +145,7 @@ class CacheUtil:
             CacheUtil.articleClicked=pk.load(open(CacheUtil.path["articleClicked"],"rb"))
         else:
             clicked=[[] for i in range(Article.objects.count())]
-            for click in Record.objects:
+            for click in Record.objects(isTrain=True):
                 clicked[click.articleIndex].append(click.userIndex)
             CacheUtil.articleClicked=clicked
             pk.dump(clicked,open(CacheUtil.path["articleClicked"],"wb"))

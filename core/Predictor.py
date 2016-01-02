@@ -40,6 +40,7 @@ class Predictor(object):
 class SimPredictor(Predictor):
     '''
     @summary: 通过用户与新闻的主题向量的余弦相似度来得出用户评分
+    @addition:候选集选取使用聚类,将用户分到某一类,该类中所有的文章成为候选集
     '''
     
     def __init__(self,ufProvider=None,afProvider=None):
@@ -73,6 +74,7 @@ class SimPredictor(Predictor):
 class FriendPredictor(Predictor):
     '''
     @summary: 根据基于用户的协同过滤来计算用户对新闻的感兴趣程度
+    @addition: 候选集是用户领域中的所有用户看过的文章和用户看过的文章的领域的并集的并集
     '''
     
     def __init__(self,provider=None):

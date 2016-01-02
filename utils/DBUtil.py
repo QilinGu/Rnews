@@ -117,4 +117,14 @@ class DBUtil:
             tmp=np.random.ranf()
             click.isTrain=True if tmp<ratio else False
             click.save()
+
+    @staticmethod
+    def splitByClickedDate(day):
+        middle=1393603220+day*3600*24
+        for click in Record.objects:
+            click.isTrain=True if click.clickDate<middle else False
+            click.save()
+
+
+
             

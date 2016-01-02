@@ -79,7 +79,7 @@ class BaseEvaluator(Evaluator):
         return self.intersection()*1.0/Record.objects(isTrain=False).count()
     
     def coverage(self):
-        recArticles=list(map(lambda x:x.articleIndex),Recommendation.objects.only("articleIndex"))
+        recArticles=list(map(lambda x:x.articleIndex,Recommendation.objects.only("articleIndex")))
         return len(set(recArticles))*1.0/Article.objects.count()
     
     def diversity(self):

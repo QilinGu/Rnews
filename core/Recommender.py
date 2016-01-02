@@ -3,16 +3,12 @@ Created on 2015年12月7日
 @summary: 核心类，用于为单个用户推荐他感兴趣的新闻
 @author: suemi
 '''
-from scikits.crab.metrics import pearson_correlation
-from scikits.crab.recommenders.knn import UserBasedRecommender
-from scikits.crab.similarities import UserSimilarity
 
 from core.Predictor import PredictorFactory, SimPredictor, FriendPredictor
 from model.Entity import *
 from enum import Enum
 from utils.CacheUtil import CacheUtil
 from utils.DBUtil import DBUtil
-from scikits.crab.models import MatrixPreferenceDataModel
 
 
 class Recommender:

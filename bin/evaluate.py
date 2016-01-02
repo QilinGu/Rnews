@@ -1,5 +1,6 @@
 '''
    Created by suemi on 16/1/2.
+   @summary:基于数据库中的推荐结果评分
 '''
 import sys,os
 sys.path.append(".")
@@ -26,14 +27,14 @@ def main(options,arguments):
         print("recall: "+str(recall))
     elif method==Metric.COVERAGE:
         coverage=evaluator.coverage()
-        print("coverage: "+coverage)
+        print("coverage: "+str(coverage))
     elif method==Metric.ALL:
         precision=evaluator.precision()
         print("precision: "+str(precision))
         recall=evaluator.recall()
         print("recall: "+str(recall))
         coverage=evaluator.coverage()
-        print("coverage: "+coverage)
+        print("coverage: "+str(coverage))
     else:
         print("请选择合法的检验指标")
 
