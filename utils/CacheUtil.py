@@ -31,6 +31,8 @@ class CacheUtil:
     record=None
     userClicked=None
     articleClicked=None
+    userClickedTest=None
+    articleClickedTest=None
 
     @staticmethod
     def clear():
@@ -138,7 +140,7 @@ class CacheUtil:
         return CacheUtil.userClicked[index]
 
     @staticmethod
-    def loadClickedForArticle(index):
+    def loadClickedForArticle(index,isTrain=True):
         if CacheUtil.articleClicked!=None:
             return CacheUtil.articleClicked[index]
         elif os.path.exists(CacheUtil.path["articleClicked"]):
@@ -150,3 +152,4 @@ class CacheUtil:
             CacheUtil.articleClicked=clicked
             pk.dump(clicked,open(CacheUtil.path["articleClicked"],"wb"))
         return CacheUtil.articleClicked[index]
+

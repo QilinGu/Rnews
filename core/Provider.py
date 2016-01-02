@@ -39,9 +39,9 @@ class Provider:
         @summary: 为单个对象提供特征向量
         '''
         res=self.provideFromCache(index,True)
-        if not res:
+        if res==None:
             res=self.provideFromDB(index)
-        if not res:
+        if res==None:
             res=self.provideFromCompute(index)
         return res
     
@@ -94,6 +94,8 @@ class ArticleFeatureProvider(Provider):
     def __init__(self,corpus=None):
         super().__init__()
         self.corpus=corpus
+        self.unClicked=None
+        self.transfer=None
         
     def setCorpus(self,corpus):
         self.corpus=corpus
@@ -147,6 +149,19 @@ class ArticleFeatureProvider(Provider):
             DBUtil.dumpArticleFeature(feature)
         self.setCache(feature)
         return feature
+
+    def filterClicked(self):
+        if self.unClicked:
+            return self.unClicked,self.transfer
+        feature=self.provideAll()
+        unClicked=[];transfer=[];count=0
+        for i in range(len(feature)):
+            if len(CacheUtil.loadClickedForArticle(i))==0:
+                transfer.append(i)
+                unClicked.append(feature[i])
+        self.unClicked=unClicked
+        self.transfer=transfer
+        return unClicked,transfer
     
     
 class UserInterestProvider(Provider):
@@ -178,7 +193,7 @@ class UserInterestProvider(Provider):
         vec=np.array([0.0]*self.interestNum)
         for articleIndex in clicked:
             vec+=np.array(self.articleFeatureProvider.provide(articleIndex))
-        vec/=len(clicked)
+        vec/=max(len(clicked),1)
         res=list(vec)
         if self.isUpdate():
             user.interest=res
@@ -204,7 +219,7 @@ class UserInterestProvider(Provider):
             for i in clicked:
                 tmp=np.array(feature[i])
                 vec=vec+tmp
-            vec/=len(clicked)
+            vec/=max(len(clicked),1)
             interest.append(list(vec))
             # print(vec)
             print("User "+str(user.index)+" has computed!")

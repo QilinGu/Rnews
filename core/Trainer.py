@@ -54,9 +54,10 @@ class FriendTrainer(Trainer):
     def train(self, userId):
         if not self.model:
             self.model=NearestNeighbors(n_neighbors=self.num+1).fit(self.provider.provideAll())
-        distance,indexs=self.model.kneighbors([self.provider.provide(userId)])
+        distance,neighborList=self.model.kneighbors([self.provider.provide(userId)])
+        if distance[0][2]==0:
+            return []
         similarity=self.distanceToSimilarity(distance[0][1:])
-        neighborList=list(map(lambda x:CacheUtil.indexToUser(x),indexs))
         res=[]
         for i in range(self.num):
             res.append((neighborList[i],similarity[i]))
@@ -69,11 +70,14 @@ class FriendTrainer(Trainer):
         distances,friends=self.model.kneighbors(self.provider.provideAll())
         for count in range(len(friends)):
             friend=[]
+            if distances[count][2]==0:
+                res.append(friend)
+                continue
             similarity=self.distanceToSimilarity(distances[count])[1:]
             neighborList= friends[count][1:]
 
             for i in range(self.num):
-               friend.append((neighborList[i],similarity[i]))
+                friend.append((neighborList[i],similarity[i]))
             res.append(friend)
             print("User "+str(count)+" finded!")
         if self.isUpdate():
@@ -97,6 +101,7 @@ class UserFriendProvider(Provider):
         self.trainer=trainer if trainer else FriendTrainer()
 
     def provideFromCache(self,userIndex,load=False):
+
         if not self.isCached() and load:
             self.setCache(CacheUtil.loadUserFriends())
         if self.isCached():
@@ -104,7 +109,7 @@ class UserFriendProvider(Provider):
         return None
 
     def provideFromDB(self,uid):
-        friend=list(map(lambda x:(x.targetIndex,x.similarity)),FriendRelation.objects(userIndex=uid))
+        friend=list(map(lambda x:(x.targetIndex,x.similarity),FriendRelation.objects(userIndex=uid)))
         if len(friend)>0:
             self.setCache(friend)
             return friend
@@ -112,7 +117,7 @@ class UserFriendProvider(Provider):
             return None
 
     def provideFromCompute(self,uid):
-        res=self.trainer.train()
+        res=self.trainer.train(uid)
         self.setCache(res)
         return res
 
